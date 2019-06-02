@@ -39,7 +39,7 @@ public class Clock {
     private long startTime;
     private long populateStartTs;
 
-    public Clock(long deltaTS, boolean populate) {
+    public Clock(long deltaTS, boolean populate, String filePath) {
         this.deltaTs = deltaTS;
         this.warehouses = 0;
 
@@ -47,14 +47,14 @@ public class Clock {
             this.startTime = System.currentTimeMillis();
             this.populateStartTs = getFinalPopulatedTs();
         } else {
-            this.startTime = AuxiliarFileHandler.importLastTs("./");
-            this.populateStartTs = AuxiliarFileHandler.importFirstTs("./");
+            this.startTime = AuxiliarFileHandler.importLastTs(filePath);
+            this.populateStartTs = AuxiliarFileHandler.importFirstTs(filePath);
         }
 
         this.clock = new AtomicLong(startTime);
     }
 
-    public Clock(long deltaTS, int warehouses, boolean populate) {
+    public Clock(long deltaTS, int warehouses, boolean populate, String filePath) {
         this.deltaTs = deltaTS;
         this.warehouses = warehouses;
 
@@ -62,8 +62,8 @@ public class Clock {
             this.startTime = System.currentTimeMillis();
             this.populateStartTs = startTime;
         } else {
-            this.startTime = AuxiliarFileHandler.importLastTs("./");
-            this.populateStartTs = AuxiliarFileHandler.importFirstTs("./");
+            this.startTime = AuxiliarFileHandler.importLastTs(filePath);
+            this.populateStartTs = AuxiliarFileHandler.importFirstTs(filePath);
         }
 
         this.clock = new AtomicLong(startTime);

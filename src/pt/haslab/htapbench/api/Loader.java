@@ -61,7 +61,7 @@ public abstract class Loader {
 
     protected final BenchmarkModule benchmark;
     protected Connection conn;
-    private final WorkloadConfiguration workConf;
+    protected final WorkloadConfiguration workConf;
     protected final double scaleFactor;
     private final Histogram<String> tableSizes = new Histogram<String>(true);
 

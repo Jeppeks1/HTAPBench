@@ -87,7 +87,7 @@ public class HTAPBLoader extends Loader {
         this.outputFiles = outputFiles;
         this.fileLocation = outputPath;
         this.calibrate = calibrate;
-        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true);
+        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true, outputPath);
         counter = new AtomicInteger();
     }
 
@@ -1481,12 +1481,11 @@ public class HTAPBLoader extends Loader {
 
         // The number of timestamps generated in the population phase is known.
         // This information is used to compute the start- and end timestamp of
-        // the generated timestamps, which is then written to an output file,
-        // so the Clock in the execution phase can be initialized with those
-        // values.
+        // the generated timestamps, which is then written to an output file, so
+        // the Clock in the execution phase can be initialized with those values.
         long startTS = clock.getStartTimestamp();
         long finalTS = clock.getFinalPopulatedTs();
-        AuxiliarFileHandler.writeToFile("./", startTS, finalTS);
+        AuxiliarFileHandler.writeToFile("./", startTS, finalTS, workConf.getTargetTPS());
 
         Date startDate = new Date();
         LOG.debug("------------- LoadData Start Date = " + startDate + "-------------");

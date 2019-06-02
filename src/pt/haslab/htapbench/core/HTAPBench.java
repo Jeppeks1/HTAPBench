@@ -78,6 +78,8 @@ public class HTAPBench {
     // A list of BenchmarkModules is used to possibly run a benchmark test with more than one Phase
     private static List<BenchmarkModule> benchList = new ArrayList<BenchmarkModule>();
 
+    private static String generateFilesPath;
+
     public static void main(String[] args) throws Exception {
         // Initialize log4j
         String log4jPath = "./log4j.configuration";
@@ -111,7 +113,7 @@ public class HTAPBench {
         options.addOption(null, "clear", true, "Clear all records in the database for this benchmark");
         options.addOption(null, "load", true, "Load data using the benchmark's data loader");
         options.addOption(null, "generateFiles", true, "Generate CSV Files to Populate Database");
-        options.addOption(null, "filePath", true, "Path to generate the CSV files to load the Database.");
+        options.addOption(null, "filePath", true, "Path to generate the CSV files to load the Database, default is ../csv/?tps");
         options.addOption(null, "execute", true, "Execute the benchmark workload");
         options.addOption(null, "runscript", true, "Run an SQL script");
         options.addOption(null, "upload", true, "Upload the result");
@@ -122,8 +124,8 @@ public class HTAPBench {
         options.addOption("s", "sample", true, "Sampling window");
         options.addOption("im", "interval-monitor", true, "Throughput Monitoring Interval in seconds");
         options.addOption("ss", false, "Verbose Sampling per Transaction");
-        options.addOption("o", "output", true, "Output file (default System.out)");
-        options.addOption("d", "directory", true, "Base directory for the result files, default is current directory");
+        options.addOption("o", "output", true, "Output filename, default is 'res'");
+        options.addOption("d", "directory", true, "Base directory for the result files, default is ./results/?tps");
         options.addOption("t", "timestamp", false, "Each result file is prepended with a timestamp for the beginning of the experiment");
         options.addOption("ts", "tracescript", true, "Script of transactions to execute");
         options.addOption(null, "histograms", false, "Print txn histograms");
@@ -144,10 +146,27 @@ public class HTAPBench {
             return;
         }
 
-        // If an output directory is used, store the information
-        String outputDirectory = "";
+        // Get the configuration file
+        String configFile = argsLine.getOptionValue("c");
+        XMLConfiguration xmlConfig = new XMLConfiguration(configFile);
+        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
+
+        // Get the filename of the output or otherwise use the default filename 'res'
+        String filename = "res";
+        if (argsLine.hasOption("o")) {
+            filename = argsLine.getOptionValue("o");
+        }
+
+        // Store the output directory of the results if given, otherwise use the default "results" directory
+        String outputDirectory = "results/" + (int) xmlConfig.getDouble("target_TPS") + "tps";
         if (argsLine.hasOption("d")) {
             outputDirectory = argsLine.getOptionValue("d");
+        }
+
+        // Retrieve the filePath if the value is set, otherwise use the default data location "csv/"
+        generateFilesPath = "../csv/" + (int) xmlConfig.getDouble("target_TPS") + "tps";
+        if (argsLine.hasOption("filePath")){
+            generateFilesPath = argsLine.getOptionValue("filePath");
         }
 
         // The timestamp value at the beginning of the test is appended to result files
@@ -164,11 +183,6 @@ public class HTAPBench {
 
         // Retrieve the calibrate variable
         boolean calibrate = isBooleanOptionSet(argsLine, "calibrate");
-
-        // Get the configuration file
-        String configFile = argsLine.getOptionValue("c");
-        XMLConfiguration xmlConfig = new XMLConfiguration(configFile);
-        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
 
         // Get the error margin allowed for hybrid workloads
         double error_margin = xmlConfig.getDouble("error_margin");
@@ -286,45 +300,38 @@ public class HTAPBench {
                 LOG.info(r.getClass());
                 ResultUploader ru = new ResultUploader(r, xmlConfig, argsLine);
 
-                if (argsLine.hasOption("o")) {
-                    // Check if directory needs to be created
-                    if (outputDirectory.length() > 0) {
-                        FileUtil.makeDirIfNotExists(outputDirectory.split("/"));
-                    }
+                // Make the output directory if it does not already exist
+                FileUtil.makeDirIfNotExists(outputDirectory);
 
-                    // Build the complex path
-                    String baseFile = timestampValue + argsLine.getOptionValue("o");
+                // Build the complex path with the requested filename and possibly with the timestamp prepended
+                String baseFile = timestampValue + filename;
 
-                    // Increment the filename for new results
-                    String nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
-                    ps = new PrintStream(new File(nextName));
-                    LOG.info("Output into file: " + nextName);
+                // Increment the filename for new results
+                String nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
+                ps = new PrintStream(new File(nextName));
+                LOG.info("Output into file: " + nextName);
 
-                    nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".raw"));
-                    rs = new PrintStream(new File(nextName));
-                    LOG.info("Output Raw data into file: " + nextName);
+                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".raw"));
+                rs = new PrintStream(new File(nextName));
+                LOG.info("Output Raw data into file: " + nextName);
 
-                    nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".summary"));
-                    PrintStream ss = new PrintStream(new File(nextName));
-                    System.out.println("Our result uploader" + ru);
-                    LOG.info("Output summary data into file: " + nextName);
-                    ru.writeSummary(ss);
-                    ss.close();
+                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".summary"));
+                PrintStream ss = new PrintStream(new File(nextName));
+                LOG.info("Output summary data into file: " + nextName);
+                ru.writeSummary(ss);
+                ss.close();
 
-                    nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".db.cnf"));
-                    ss = new PrintStream(new File(nextName));
-                    LOG.info("Output db config into file: " + nextName);
-                    ru.writeDBParameters(ss);
-                    ss.close();
+                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".db.cnf"));
+                ss = new PrintStream(new File(nextName));
+                LOG.info("Output db config into file: " + nextName);
+                ru.writeDBParameters(ss);
+                ss.close();
 
-                    nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".ben.cnf"));
-                    ss = new PrintStream(new File(nextName));
-                    LOG.info("Output benchmark config into file: " + nextName);
-                    ru.writeBenchmarkConf(ss);
-                    ss.close();
-                } else if (LOG.isDebugEnabled()) {
-                    LOG.debug("No output file specified");
-                }
+                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".ben.cnf"));
+                ss = new PrintStream(new File(nextName));
+                LOG.info("Output benchmark config into file: " + nextName);
+                ru.writeBenchmarkConf(ss);
+                ss.close();
 
                 if (argsLine.hasOption("s")) {
                     int windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
@@ -342,8 +349,8 @@ public class HTAPBench {
 
                             if (ts != System.out) {
                                 // Get the actual filename for the output
-                                String baseFile = timestampValue + argsLine.getOptionValue("o") + "_" + t.getName();
-                                String nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
+                                baseFile = baseFile + "_" + t.getName();
+                                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
                                 ts = new PrintStream(new File(nextName));
                                 r.writeCSV(windowSize, ts, t);
                                 ts.close();
@@ -423,9 +430,6 @@ public class HTAPBench {
     private static void configureBenchmarks(WorkloadSetup setup, CommandLine argsLine, String configFile,
                                             XMLConfiguration xmlConfig, XMLConfiguration pluginConfig)
             throws ParseException {
-        // Retrieve the filePath if the value is set
-        String generateFilesPath = argsLine.getOptionValue("filePath");
-
         // Get the benchmark name(s) from the command line
         String targetBenchmarks = argsLine.getOptionValue("b");
         String[] targetList = targetBenchmarks.split(",");
@@ -468,13 +472,14 @@ public class HTAPBench {
             wrkld.setIsolationMode(xmlConfig.getString("isolation" + pluginTest, isolationMode));
             wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", false));
             wrkld.setDataDir(xmlConfig.getString("datadir", "."));
+            wrkld.setFilesPath(generateFilesPath);
 
             // Use the command line to set the remaining configuration values
             if (argsLine.hasOption("calibrate")){
                 wrkld.setCalibrate(true);
             }
 
-            if (argsLine.hasOption("generateFiles")){
+            if (isBooleanOptionSet(argsLine, "generateFiles")) {
                 wrkld.setGenerateFiles(Boolean.parseBoolean(argsLine.getOptionValue("generateFiles")));
             }
 
@@ -776,7 +781,7 @@ public class HTAPBench {
         List<Worker> olap_workers = new ArrayList<Worker>();
 
         WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
+        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false, generateFilesPath);
 
         List<Results> results = new ArrayList<Results>();
 
@@ -861,7 +866,7 @@ public class HTAPBench {
         List<Worker> oltp_workers = new ArrayList<Worker>();
 
         WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
+        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false, generateFilesPath);
 
         List<Results> results = new ArrayList<Results>();
 
@@ -920,7 +925,7 @@ public class HTAPBench {
         List<Worker> olap_workers = new ArrayList<Worker>();
 
         WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
+        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false, generateFilesPath);
 
         List<Results> results = new ArrayList<Results>();
 

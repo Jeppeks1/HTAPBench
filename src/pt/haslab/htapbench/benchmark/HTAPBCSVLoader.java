@@ -48,6 +48,7 @@ import pt.haslab.htapbench.pojo.Stock;
 import pt.haslab.htapbench.pojo.Warehouse;
 import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.densitity.DensityConsultant;
+import pt.haslab.htapbench.util.FileUtil;
 import pt.haslab.htapbench.util.RandomGenerator;
 
 import java.io.BufferedReader;
@@ -77,7 +78,7 @@ public class HTAPBCSVLoader extends Loader {
 
         this.fileLocation = outputPath + '/';
         this.calibrate = calibrate;
-        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true);
+        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true, outputPath);
         counter = new AtomicInteger();
     }
 
@@ -928,14 +929,16 @@ public class HTAPBCSVLoader extends Loader {
     public void load() {
         gen = new Random(clock.getStartTimestamp());
 
+        // Make sure the requested directory exists before writing to it
+        FileUtil.makeDirIfNotExists(fileLocation);
+
         // The number of timestamps generated in the population phase is known.
         // This information is used to compute the start- and end timestamp of
-        // the generated timestamps, which is then written to an output file,
-        // so the Clock in the execution phase can be initialized with those
-        // values.
+        // the generated timestamps, which is then written to an output file, so
+        // the Clock in the execution phase can be initialized with those values.
         long startTS = clock.getStartTimestamp();
         long finalTS = clock.getFinalPopulatedTs();
-        AuxiliarFileHandler.writeToFile("./", startTS, finalTS);
+        AuxiliarFileHandler.writeToFile(fileLocation, startTS, finalTS, workConf.getTargetTPS());
 
         Date startDate = new Date();
         LOG.debug("------------- LoadData Start Date = " + startDate + "-------------");
