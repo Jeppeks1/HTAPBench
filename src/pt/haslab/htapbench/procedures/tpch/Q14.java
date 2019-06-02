@@ -41,12 +41,14 @@ import java.sql.Timestamp;
 
 public class Q14 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(Clock clock){  
+    private SQLStmt buildQueryStmt(Clock clock){
         int year = RandomParameters.randBetween(1993, 1997);
         int month = RandomParameters.randBetween(1, 12);
+
         long date1 = RandomParameters.convertDatetoLong(year, month, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, month, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        long date2 = RandomParameters.convertDatetoLong(year + 1, month, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
         
         String query = "SELECT (100.00 * sum(CASE WHEN i_data LIKE 'PR%' THEN ol_amount ELSE 0 END) / (1 + sum(ol_amount))) AS promo_revenue "

@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -34,44 +34,38 @@ package pt.haslab.htapbench.core;
 
 import pt.haslab.htapbench.api.Worker;
 import pt.haslab.htapbench.util.QueueLimitException;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class OLAPWorkerThread implements Runnable{
-    
-    List<Worker> workers;
-    List<WorkloadConfiguration> workConfs;
-    int intervalMonitor;
-    boolean calibrate;
-    Results results;
+public class OLAPWorkerThread implements Runnable {
 
-    public OLAPWorkerThread(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate){
-        this.workers=workers;
-        this.workConfs=workConfs;
-        String connection = this.workConfs.get(0).getDBConnection();
-        this.workConfs.get(0).setDBConnection(connection);
-        this.intervalMonitor=intervalMonitoring;
-        this.calibrate=calibrate;
+    private List<Worker> workers;
+    private WorkloadConfiguration workConf;
+    private int intervalMonitor;
+    private Results results;
+
+    OLAPWorkerThread(List<Worker> workers, WorkloadConfiguration workConf, int intervalMonitoring) {
+        this.workers = workers;
+        this.workConf = workConf;
+        this.intervalMonitor = intervalMonitoring;
     }
-    
+
     @Override
     public void run() {
         try {
-            Thread.sleep(2*60*1000);
-            results = ThreadBench.runOLAP(workers, workConfs, intervalMonitor, calibrate);
-        } catch (QueueLimitException ex) {
-            Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
+            // The first few minutes should consist of only OLTP workload
+            Thread.sleep(2 * 60 * 1000);
+            results = ThreadBench.runThreadBench(workers, workConf, intervalMonitor);
         } catch (InterruptedException ex) {
             Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    public Results getResults(){
+
+    public Results getResults() {
         return results;
     }
-    
+
 }

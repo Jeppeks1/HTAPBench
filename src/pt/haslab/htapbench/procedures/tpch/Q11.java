@@ -41,13 +41,12 @@ import java.text.DecimalFormat;
 
 public class Q11 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){  
+    private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){
         RandomParameters random = new RandomParameters("uniform");
         String nation1 = random.getRandomNation();
-        
-       
-        double frac = 0.0001/wrklConf.getScaleFactor();
-        String fraction = ""+new DecimalFormat("#.#####").format(frac);
+
+        double frac = 0.0001 / wrklConf.getScaleFactor();
+        String fraction = "" + new DecimalFormat("#.#####").format(frac);
         
         String query = "SELECT s_i_id, "
             +        "sum(s_order_cnt) AS ordercount "

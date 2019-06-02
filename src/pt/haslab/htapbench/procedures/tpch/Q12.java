@@ -41,14 +41,15 @@ import java.sql.Timestamp;
 
 public class Q12 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(Clock clock){  
+    private SQLStmt buildQueryStmt(Clock clock){
         int year = RandomParameters.randBetween(1993, 1997);
+
         long date1 = RandomParameters.convertDatetoLong(year, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, 1, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        long date2 = RandomParameters.convertDatetoLong(year + 1, 1, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
-        
+
         String query = "SELECT o_ol_cnt, "
             +        "sum(CASE WHEN o_carrier_id = 1 "
             +            "OR o_carrier_id = 2 THEN 1 ELSE 0 END) AS high_line_count, "

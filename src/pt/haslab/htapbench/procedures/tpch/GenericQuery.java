@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -32,9 +32,6 @@
  */
 package pt.haslab.htapbench.procedures.tpch;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,71 +48,45 @@ public abstract class GenericQuery extends Procedure {
 
     protected static final Logger LOG = Logger.getLogger(GenericQuery.class);
 
-    private PreparedStatement stmt;
-    private Connection conn;
     private Worker owner;
 
     public void setOwner(Worker w) {
         this.owner = w;
     }
 
-    protected static SQLStmt initSQLStmt(String queryFile) {
-        StringBuilder query = new StringBuilder();
+    protected abstract SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf);
 
-        try{
-            FileReader input = new FileReader("src/eu/leanbigdata/htapb/benchmark/procedures/tpch/" + queryFile);
-            BufferedReader reader = new BufferedReader(input);
-            String line = reader.readLine();
-            while (line != null) {
-                query.append(line);
-                query.append(" ");
-                line = reader.readLine();
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return new SQLStmt(query.toString());
-    }
-
-    protected abstract SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf);
-
-    public int run(Connection conn,Clock clock, WorkloadConfiguration wrklConf) throws SQLException {
+    public int run(Connection conn, Clock clock, WorkloadConfiguration wrklConf) throws SQLException {
         //initializing all prepared statements
-        stmt = this.getPreparedStatement(conn, get_query(clock,wrklConf));
-        
-        LOG.debug("Query SQL STMT:"+ get_query(clock,wrklConf).getSQL());
-        
+        PreparedStatement stmt = this.getPreparedStatement(conn, get_query(clock, wrklConf));
+
+        LOG.debug("Query SQL STMT:" + get_query(clock, wrklConf).getSQL());
+
         if (owner != null)
             owner.setCurrStatement(stmt);
 
-        //LOG.debug(this.getClass());
         LOG.info(this.getClass());
-        ResultSet rs = null;
-        try {            
+        ResultSet rs;
+        try {
             rs = stmt.executeQuery();
-        } catch(SQLException ex) {
-            // If the system thinks we're missing a prepared statement, then we
-            // should regenerate them.
-            if (ex.getErrorCode() == 0 && ex.getSQLState() != null
-                && ex.getSQLState().equals("07003"))
-            {
+        } catch (SQLException ex) {
+            // If the system thinks we're missing a prepared statement, then we should regenerate them.
+            if (ex.getErrorCode() == 0 && ex.getSQLState() != null && ex.getSQLState().equals("07003")) {
                 this.resetPreparedStatements();
                 rs = stmt.executeQuery();
-            }
-            else {
+            } else {
                 throw ex;
             }
         }
+
         int t = 0;
         while (rs.next()) {
-            t = t+1;
+            t = t + 1;
         }
 
         if (owner != null)
             owner.setCurrStatement(null);
-        
-        return t;
 
+        return t;
     }
 }

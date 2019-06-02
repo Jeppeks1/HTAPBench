@@ -72,12 +72,6 @@ public class Q21 extends GenericQuery {
         return new SQLStmt(query);
     }
 
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {        
         return buildQueryStmt();

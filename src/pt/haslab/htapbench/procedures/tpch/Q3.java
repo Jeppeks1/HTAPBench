@@ -41,16 +41,16 @@ import java.sql.Timestamp;
 
 public class Q3 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(Clock clock){ 
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
-        
+
         int day = RandomParameters.randBetween(1, 31);
         long date = RandomParameters.convertDatetoLong(1995, 3, day);
         Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(date));
-        
+
         String state = random.generateRandomCharacter();
-        state=state.toUpperCase();
-        state = state+"%";
+        state = state.toUpperCase();
+        state = state + "%";
         
         String query ="SELECT ol_o_id, "
             +        "ol_w_id, "

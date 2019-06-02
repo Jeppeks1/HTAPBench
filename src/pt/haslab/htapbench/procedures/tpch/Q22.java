@@ -41,6 +41,7 @@ public class Q22 extends GenericQuery {
     
     private SQLStmt buildQueryStmt(){  
         RandomParameters random = new RandomParameters("uniform");
+
         String code1 = random.getRandomPhoneCountryCode();
         String code2 = random.getRandomPhoneCountryCode();
         String code3 = random.getRandomPhoneCountryCode();
@@ -83,13 +84,7 @@ public class Q22 extends GenericQuery {
             + "ORDER BY substring(c_state,1,1)";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt();

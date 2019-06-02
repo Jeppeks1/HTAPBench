@@ -40,16 +40,16 @@ import java.sql.Timestamp;
 
 public class Q8 extends GenericQuery {
 	
-    private SQLStmt buildQueryStmt(Clock clock){  
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
         String nation1 = random.getRandomNation();
         String region = random.getRandomRegion();
-        String i_data = "%"+random.generateRandomCharacter();
-        String quantity = ""+RandomParameters.randBetween(1, 1000);
-        
+        String i_data = "%" + random.generateRandomCharacter();
+        String quantity = "" + RandomParameters.randBetween(1, 1000);
+
         long date1 = RandomParameters.convertDatetoLong(1995, 1, 1);
         long date2 = RandomParameters.convertDatetoLong(1996, 12, 31);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
                 
         String query = "SELECT sum(CASE WHEN n2.n_name = '"+nation1+"' THEN ol_amount ELSE 0 END) / sum(ol_amount) AS mkt_share "

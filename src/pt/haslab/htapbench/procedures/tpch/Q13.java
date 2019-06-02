@@ -40,8 +40,8 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q13 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(){  
-        String id = ""+RandomParameters.randBetween(1, 10);
+    private SQLStmt buildQueryStmt(){
+        String id = "" + RandomParameters.randBetween(1, 10);
         
         String query = "SELECT c_count, "
             +        "count(*) AS custdist "

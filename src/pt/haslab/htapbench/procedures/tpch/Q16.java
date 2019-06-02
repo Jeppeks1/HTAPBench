@@ -40,14 +40,13 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q16 extends GenericQuery {    
     
-    private SQLStmt buildQueryStmt(){  
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
         String st1 = random.generateRandomCharacter();
         String st2 = random.generateRandomCharacter();
-        String data = st1+st2+"%";
-        String su_comment = "%"+random.getRandomSuComment()+"%";
-        
-        
+        String data = st1 + st2 + "%";
+        String su_comment = "%" + random.getRandomSuComment() + "%";
+
         String query = "SELECT i_name, "
             +        "substring(i_data from  1 for 3) AS brand, "
             +        "i_price, "
@@ -67,13 +66,7 @@ public class Q16 extends GenericQuery {
             + "ORDER BY supplier_cnt DESC";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt();

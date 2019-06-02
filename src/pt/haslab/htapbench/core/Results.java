@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -44,9 +44,8 @@ import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.util.Histogram;
 
 public final class Results {
-    public final long nanoSeconds;
-    public long nanoSecondsH;
-    public final int measuredRequests;
+    private final long nanoSeconds;
+    private final int measuredRequests;
     public final DistributionStatistics latencyDistribution;
     final Histogram<TransactionType> txnSuccess = new Histogram<TransactionType>(true);
     final Histogram<TransactionType> txnAbort = new Histogram<TransactionType>(true);
@@ -55,10 +54,10 @@ public final class Results {
     final Map<TransactionType, Histogram<String>> txnAbortMessages = new HashMap<TransactionType, Histogram<String>>();
     private int ts_counter = 0;
     private String name;
-    
-    public final List<LatencyRecord.Sample> latencySamples;
 
-    public Results(long nanoSeconds, int measuredRequests, DistributionStatistics latencyDistribution, final List<LatencyRecord.Sample> latencySamples) {
+    private final List<LatencyRecord.Sample> latencySamples;
+
+    Results(long nanoSeconds, int measuredRequests, DistributionStatistics latencyDistribution, final List<LatencyRecord.Sample> latencySamples) {
         this.nanoSeconds = nanoSeconds;
         this.measuredRequests = measuredRequests;
         this.latencyDistribution = latencyDistribution;
@@ -76,62 +75,65 @@ public final class Results {
     /**
      * Get a histogram of how often each transaction was executed
      */
-    public final Histogram<TransactionType> getTransactionSuccessHistogram() {
+    final Histogram<TransactionType> getTransactionSuccessHistogram() {
         return (this.txnSuccess);
     }
-    public final Histogram<TransactionType> getTransactionRetryHistogram() {
+
+    final Histogram<TransactionType> getTransactionRetryHistogram() {
         return (this.txnRetry);
     }
-    public final Histogram<TransactionType> getTransactionAbortHistogram() {
+
+    final Histogram<TransactionType> getTransactionAbortHistogram() {
         return (this.txnAbort);
     }
-    public final Histogram<TransactionType> getTransactionErrorHistogram() {
+
+    final Histogram<TransactionType> getTransactionErrorHistogram() {
         return (this.txnErrors);
     }
-    public final Map<TransactionType, Histogram<String>> getTransactionAbortMessageHistogram() {
+
+    final Map<TransactionType, Histogram<String>> getTransactionAbortMessageHistogram() {
         return (this.txnAbortMessages);
     }
-    
-    public void setName(String name){
-        this.name=name;
+
+    public void setName(String name) {
+        this.name = name;
     }
-    
-    public String getName(){
+
+    public String getName() {
         return this.name;
     }
 
     public double getRequestsPerSecond() {
         return (double) measuredRequests / (double) nanoSeconds * 1e9;
     }
-    
-    public double get_QphH(){
-        return (double)(measuredRequests)/ ((double)(nanoSeconds * 0.000000001)/360);
+
+    private double get_QphH() {
+        return (double) (measuredRequests) / (nanoSeconds * 0.000000001 / 360);
     }
-    
-    public double get_tpmC(){
-        this.nanoSecondsH=nanoSeconds;
-        return (double)(measuredRequests/ ((double)(nanoSeconds * 0.000000001) / 60))*0.45;
+
+    private double get_tpmC() {
+        return measuredRequests / (nanoSeconds * 0.000000001 / 60) * 0.45;
     }
 
     @Override
     public String toString() {
-        String results ="Results(nanoSeconds=" + nanoSeconds + ", measuredRequests=" + measuredRequests + ") = " + getRequestsPerSecond() + " requests/sec \n "+
-               "************************* \n"+
-               "Total TS Count: " + this.ts_counter + "\n";
-        if(getName().equals("TPCC"))
+        String results = "Results(nanoSeconds=" + nanoSeconds + ", measuredRequests=" + measuredRequests + ") = " + getRequestsPerSecond() + " requests/sec \n " +
+                "************************* \n" +
+                "Total TS Count: " + this.ts_counter + "\n";
+        if (getName().equals("TPCC"))
             results = results + "tpmC : " + get_tpmC() + "\n *************************";
-        if(getName().equals("TPCH"))
+        if (getName().equals("TPCH"))
             results = results + "QphH : " + get_QphH() + "\n *************************";
-        return results;       
+        return results;
     }
 
     public void writeCSV(int windowSizeSeconds, PrintStream out) {
         writeCSV(windowSizeSeconds, out, TransactionType.INVALID);
     }
-    
-    public void writeCSV(int windowSizeSeconds, PrintStream out, TransactionType txType) {
+
+    void writeCSV(int windowSizeSeconds, PrintStream out, TransactionType txType) {
         out.println("**********************************************");
-        out.println(this.getName()+ " Results:");
+        out.println(this.getName() + " Results:");
         out.println("**********************************************");
         out.println("time(sec), throughput(req/sec), avg_lat(ms), min_lat(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms), 90th_lat(ms), 95th_lat(ms), 99th_lat(ms), max_lat(ms), tp (req/s) scaled");
         int i = 0;
@@ -146,16 +148,6 @@ public final class Results {
         out.println(toString());
     }
 
-    public void writeAllCSV(PrintStream out) {
-        long startNs = latencySamples.get(0).startNs;
-        
-        out.println("transaction type (index in config file), start time (microseconds),latency (microseconds)");
-        for (Sample s : latencySamples) {
-            long startUs = (s.startNs - startNs + 500) / 1000;
-            out.println(s.tranType + "," + startUs + "," + s.latencyUs);
-        }
-    }
-
     public void writeAllCSVAbsoluteTiming(PrintStream out) {
 
         // This is needed because nanTime does not guarantee offset... we
@@ -165,23 +157,19 @@ public final class Results {
         double offset = x - y;
 
         // long startNs = latencySamples.get(0).startNs;
-        if(this.getName().endsWith("TPCC"))
+        if (this.getName().endsWith("TPCC"))
             out.println("transaction type (index in config file), start time (microseconds),latency (microseconds),worker id(start number), phase id(index in config file)");
-        if(this.getName().equals("TPCH"))
+        if (this.getName().equals("TPCH"))
             out.println("transaction type (index in config file), start time (microseconds),latency (microseconds),worker id(start number), Rows in ResultSet");
-        if(this.getName().equals("CLIENT BALANCER"))
+        if (this.getName().equals("CLIENT BALANCER"))
             out.println("transaction type (index in config file), start time (microseconds),latency (microseconds), Current TPS , phase id(index in config file)");
         for (Sample s : latencySamples) {
             double startUs = ((double) s.startNs / (double) 1000000000);
             out.println(s.tranType + "," + String.format("%10.6f", startUs - offset) + "," + s.latencyUs + "," + s.workerId + "," + s.phaseId);
         }
     }
-    
-    public void setTsCounter(int ts_counter){
-        this.ts_counter=ts_counter;
-    }
-    
-    public int setTsCounter(){
-        return this.ts_counter;
+
+    void setTsCounter(int ts_counter) {
+        this.ts_counter = ts_counter;
     }
 }

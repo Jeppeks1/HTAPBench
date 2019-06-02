@@ -40,12 +40,12 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q9 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(){  
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
         String st1 = random.generateRandomCharacter();
         String st2 = random.generateRandomCharacter();
-        String data=st1.toUpperCase()+st2.toUpperCase();
-        data = "%"+data;
+        String data = st1.toUpperCase() + st2.toUpperCase();
+        data = "%" + data;
         
         String query = "SELECT n_name, "
             +        "sum(ol_amount) AS sum_profit "

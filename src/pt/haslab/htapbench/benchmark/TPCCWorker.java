@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -44,6 +44,7 @@ import java.sql.SQLException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+
 import org.apache.log4j.Logger;
 
 import pt.haslab.htapbench.procedures.tpcc.TPCCProcedure;
@@ -59,106 +60,88 @@ import pt.haslab.htapbench.core.WorkloadConfiguration;
 
 public class TPCCWorker extends Worker {
 
-	// private TransactionTypes transactionTypes;
+    private static final AtomicInteger terminalId = new AtomicInteger(0);
+    private AtomicInteger ts_counter;
 
-	private String terminalName;
+    private final int terminalWarehouseID;
+    private final int terminalDistrictLowerID; // Forms a range [lower, upper] (inclusive).
+    private final int terminalDistrictUpperID; // Forms a range [lower, upper] (inclusive).
+    private int numWarehouses;
 
-	private final int terminalWarehouseID;
-	/** Forms a range [lower, upper] (inclusive). */
-	private final int terminalDistrictLowerID;
-	private final int terminalDistrictUpperID;
-	private SimplePrinter terminalOutputArea, errorOutputArea;
-	// private boolean debugMessages;
-	private final Random rand = new Random();
-        private final RandomParameters RandGen = new RandomParameters("uniform");     
-	private int transactionCount = 1, numWarehouses;
-	private static final AtomicInteger terminalId = new AtomicInteger(0);
-        private AtomicInteger ts_counter = null;
-        private Clock clock = null;
-        
-        public long thinkTime = 0;
+    private final Random rand = new Random();
+    private Clock clock;
 
-	public TPCCWorker(String terminalName, int terminalWarehouseID,
-			int terminalDistrictLowerID, int terminalDistrictUpperID,
-			HTAPBenchmark benchmarkModule, SimplePrinter terminalOutputArea,
-			SimplePrinter errorOutputArea, int numWarehouses, AtomicInteger ts_counter, Clock clock)
-			throws SQLException {
-		super(benchmarkModule, terminalId.getAndIncrement());
-		
-		this.terminalName = terminalName;
+    private long thinkTime = 0;
 
-		this.terminalWarehouseID = terminalWarehouseID;
-		this.terminalDistrictLowerID = terminalDistrictLowerID;
-		this.terminalDistrictUpperID = terminalDistrictUpperID;
-		assert this.terminalDistrictLowerID >= 1;
-		assert this.terminalDistrictUpperID <= jTPCCConfig.configDistPerWhse;
-		assert this.terminalDistrictLowerID <= this.terminalDistrictUpperID;
-		this.terminalOutputArea = terminalOutputArea;
-		this.errorOutputArea = errorOutputArea;
-		this.numWarehouses = numWarehouses;
-                this.ts_counter=ts_counter;
-                this.clock = clock;
-	}
+    public TPCCWorker(int terminalWarehouseID, int terminalDistrictLowerID, int terminalDistrictUpperID,
+                      int numWarehouses, HTAPBenchmark benchmarkModule, AtomicInteger ts_counter, Clock clock) {
+        super(benchmarkModule, terminalId.getAndIncrement());
+
+        this.terminalWarehouseID = terminalWarehouseID;
+        this.terminalDistrictLowerID = terminalDistrictLowerID;
+        this.terminalDistrictUpperID = terminalDistrictUpperID;
+        this.numWarehouses = numWarehouses;
+        this.ts_counter = ts_counter;
+        this.clock = clock;
+
+        assert this.terminalDistrictLowerID >= 1;
+        assert this.terminalDistrictUpperID <= jTPCCConfig.configDistPerWhse;
+        assert this.terminalDistrictLowerID <= this.terminalDistrictUpperID;
+    }
 
 
-	/**
-	* Executes a single TPCC transaction of type transactionType.
-        * @param nextTransaction
-        * @param rows
-        * @return 
-        * @throws java.sql.SQLException
-	 */
-	@Override
+    /**
+     * Executes a single TPCC transaction of type transactionType.
+     */
+    @Override
     protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows) throws UserAbortException, SQLException {
         try {
             TPCCProcedure proc = (TPCCProcedure) this.getProcedure(nextTransaction.getProcedureClass());
-            proc.run(conn, rand, terminalWarehouseID, numWarehouses,terminalDistrictLowerID, terminalDistrictUpperID, this);
-            setThinkTime(thinkTime()+proc.getKeyingTime());
-            
+            proc.run(conn, rand, terminalWarehouseID, numWarehouses, terminalDistrictLowerID, terminalDistrictUpperID, this);
+            setThinkTime(thinkTime() + proc.getKeyingTime());
+
             //waits the required ThinkTime per txn.
             Thread.sleep(getThinkTime());
-            
-            
-        } catch (ClassCastException ex){
+        } catch (ClassCastException ex) {
             //fail gracefully
-        	System.err.println("TPC-C: We have been invoked with an INVALID transactionType?!");
-        	throw new RuntimeException("Bad transaction type = "+ nextTransaction);
-	    } catch (RuntimeException ex) {
-	        conn.rollback();
-                System.err.println("TPC-C txn will restart "+ex.getMessage());
-	        return (TransactionStatus.RETRY_DIFFERENT);
-	    } catch (InterruptedException ex) { 
-                java.util.logging.Logger.getLogger(TPCCWorker.class.getName()).log(Level.SEVERE, null, ex);
-            }
-		transactionCount++;
+            System.err.println("TPC-C: We have been invoked with an INVALID transactionType?!");
+            throw new RuntimeException("Bad transaction type = " + nextTransaction);
+        } catch (RuntimeException ex) {
+            conn.rollback();
+            System.err.println("TPC-C txn will restart " + ex.getMessage());
+            return (TransactionStatus.RETRY_DIFFERENT);
+        } catch (InterruptedException ex) {
+            java.util.logging.Logger.getLogger(TPCCWorker.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
         conn.commit();
+
         return (TransactionStatus.SUCCESS);
     }
-    
-    public AtomicInteger getTs_conter(){
+
+    public AtomicInteger getTs_conter() {
         return this.ts_counter;
     }
 
     public WorkloadConfiguration getWrkld() {
         return wrkld;
     }
-    
-    public long thinkTime() {
-        long r = RandGen.negExp(rand, getThinkTime(), 0.36788, getThinkTime(), 4.54e-5, getThinkTime());
-        return (r);
+
+    private long thinkTime() {
+        return (RandomParameters.negExp(rand, getThinkTime(), 0.36788, getThinkTime(), 4.54e-5, getThinkTime()));
     }
-  
-    private long getThinkTime(){
+
+    private long getThinkTime() {
         return this.thinkTime;
     }
-    
-    private void setThinkTime(long thinkTime){
-       this.thinkTime=thinkTime;
+
+    private void setThinkTime(long thinkTime) {
+        this.thinkTime = thinkTime;
     }
-    
-    public Clock getClock(){
+
+    public Clock getClock() {
         return this.clock;
     }
-    
+
 }
 

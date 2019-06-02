@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -33,8 +33,8 @@ package pt.haslab.htapbench.benchmark;
 
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import pt.haslab.htapbench.api.BenchmarkModule;
-import pt.haslab.htapbench.api.Procedure;
 import pt.haslab.htapbench.api.Procedure.UserAbortException;
 import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.api.Worker;
@@ -45,34 +45,31 @@ import pt.haslab.htapbench.types.ResultSetResult;
 import pt.haslab.htapbench.types.TransactionStatus;
 
 public class TPCHWorker extends Worker {
-    
-    private Clock clock = null;
-    
-    public TPCHWorker(BenchmarkModule benchmarkModule,Clock clock) {
+
+    private Clock clock;
+
+    TPCHWorker(BenchmarkModule benchmarkModule, Clock clock) {
         super(benchmarkModule, terminalId.getAndIncrement());
-        this.clock=clock;
+        this.clock = clock;
     }
 
     private static final AtomicInteger terminalId = new AtomicInteger(0);
 
     @Override
-    protected TransactionStatus executeWork(TransactionType nextTransaction,ResultSetResult rows) throws UserAbortException, SQLException {
+    protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows)
+            throws UserAbortException, SQLException {
         try {
-            //Class<? extends Procedure> p = nextTransaction.getProcedureClass();            
-            //Procedure getProc = this.getProcedure(p);
-            
             GenericQuery proc = (GenericQuery) this.getProcedure(nextTransaction.getProcedureClass());
-            //GenericQuery proc = (GenericQuery) getProc;
-            proc.setOwner(this);           
-            int resultSetRowNumber = proc.run(conn,clock,super.getWorkloadConfiguration());
+            proc.setOwner(this);
+            int resultSetRowNumber = proc.run(conn, clock, super.getWorkloadConfiguration());
             rows.setRows(resultSetRowNumber);
         } catch (ClassCastException e) {
             System.err.println(e.toString());
             System.err.println("TPC-H : We have been invoked with an INVALID transactionType?!");
-            throw new RuntimeException("Bad transaction type = "+ nextTransaction);
+            throw new RuntimeException("Bad transaction type = " + nextTransaction);
         }
-        //TPCH transactions cannont be commited. If they are it will interfere with the statistics return.
-        //conn.commit();
+
+        // TPCH transactions cannot be committed. If they are, it will interfere with the statistics returned.
         return (TransactionStatus.SUCCESS);
 
     }

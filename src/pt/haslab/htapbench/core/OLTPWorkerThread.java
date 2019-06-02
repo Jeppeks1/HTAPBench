@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -35,40 +35,32 @@ package pt.haslab.htapbench.core;
 import pt.haslab.htapbench.api.Worker;
 import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.util.QueueLimitException;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class OLTPWorkerThread implements Runnable{
-    
-    List<Worker> workers;
-    List<WorkloadConfiguration> workConfs;
-    int intervalMonitor;
-    boolean calibrate;
-    Results results;
-    private Clock clock;
+public class OLTPWorkerThread implements Runnable {
 
-    public OLTPWorkerThread(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate){
-        this.workers=workers;
-        this.workConfs=workConfs;
-        this.intervalMonitor=intervalMonitoring;
-        this.calibrate=calibrate;
+    private List<Worker> workers;
+    private WorkloadConfiguration workConf;
+    private int intervalMonitor;
+    private Results results;
+
+    OLTPWorkerThread(List<Worker> workers, WorkloadConfiguration workConf, int intervalMonitoring) {
+        this.workers = workers;
+        this.workConf = workConf;
+        this.intervalMonitor = intervalMonitoring;
     }
-    
+
     @Override
     public void run() {
-        try {
-            results = ThreadBench.runRateLimitedOLTP(workers, workConfs, intervalMonitor, calibrate);
-        } catch (QueueLimitException ex) {
-            Logger.getLogger(OLTPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(OLTPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        results = ThreadBench.runThreadBench(workers, workConf, intervalMonitor);
     }
-    
-    public Results getResults(){
+
+    public Results getResults() {
         return results;
     }
-    
+
 }

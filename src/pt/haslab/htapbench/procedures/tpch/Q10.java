@@ -41,19 +41,19 @@ import java.sql.Timestamp;
 
 public class Q10 extends GenericQuery {
     
-     private SQLStmt buildQueryStmt(Clock clock){  
-        int year = RandomParameters.randBetween(1993, 1995);
-        int month=0;
-        if(year == 1993)
-            month = RandomParameters.randBetween(3, 12);
-        if(year == 1995)
-            month = RandomParameters.randBetween(1, 10);
-        else 
-            month = RandomParameters.randBetween(1, 12);
-        long date1 = RandomParameters.convertDatetoLong(year, month, 1);
-        long date2 = RandomParameters.addMonthsToDate(date1, 3);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+     private SQLStmt buildQueryStmt(Clock clock){
+         int year = RandomParameters.randBetween(1993, 1995);
+         int month = 0;
+         if (year == 1993)
+             month = RandomParameters.randBetween(3, 12);
+         if (year == 1995)
+             month = RandomParameters.randBetween(1, 10);
+         else
+             month = RandomParameters.randBetween(1, 12);
+         long date1 = RandomParameters.convertDatetoLong(year, month, 1);
+         long date2 = RandomParameters.addMonthsToDate(date1, 3);
+         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
+         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
         
         String query = "SELECT c_id, "
             +        "c_last, "

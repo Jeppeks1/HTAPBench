@@ -44,17 +44,17 @@ import java.sql.Timestamp;
 
 public class Q15 extends GenericQuery {
 	
-    private SQLStmt buildViewStmt(Clock clock){  
+    private SQLStmt buildViewStmt(Clock clock){
         int year = RandomParameters.randBetween(1993, 1997);
-        int month=0;
-        if(year == 1997)
+        int month = 0;
+        if (year == 1997)
             month = RandomParameters.randBetween(1, 10);
-        else 
+        else
             month = RandomParameters.randBetween(1, 12);
         long date1 = RandomParameters.convertDatetoLong(year, month, 1);
         long date2 = RandomParameters.addMonthsToDate(date1, 3);
-        
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
         
         String view = "CREATE view revenue0 (supplier_no, total_revenue) AS "
@@ -87,7 +87,7 @@ public class Q15 extends GenericQuery {
         return new SQLStmt(query);
     }
 		
-    public final SQLStmt dropview_stmt = new SQLStmt(
+    private final SQLStmt dropview_stmt = new SQLStmt(
               "DROP VIEW revenue0"
         );
 	

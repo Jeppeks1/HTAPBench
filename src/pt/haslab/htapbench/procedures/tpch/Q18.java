@@ -40,8 +40,8 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q18 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(){  
-        String amount = ""+ RandomParameters.randDoubleBetween(312, 315);
+    private SQLStmt buildQueryStmt(){
+        String amount = "" + RandomParameters.randDoubleBetween(312, 315);
         
         String query = "SELECT c_last, "
             +        "c_id, "
@@ -69,13 +69,7 @@ public class Q18 extends GenericQuery {
             + "ORDER BY amount_sum DESC, o_entry_d";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt();

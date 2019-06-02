@@ -40,14 +40,14 @@ import java.sql.Timestamp;
 
 public class Q7 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(Clock clock){  
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
         String nation1 = random.getRandomNation();
         String nation2 = random.getRandomNation();
-        
+
         long date1 = RandomParameters.convertDatetoLong(1995, 1, 1);
         long date2 = RandomParameters.convertDatetoLong(1996, 12, 31);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));        
         
         String query = "SELECT su_nationkey AS supp_nation, "

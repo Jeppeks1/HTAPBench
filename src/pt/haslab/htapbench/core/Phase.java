@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -35,6 +35,7 @@ package pt.haslab.htapbench.core;
 import pt.haslab.htapbench.api.Worker;
 import pt.haslab.htapbench.benchmark.TPCCWorker;
 import pt.haslab.htapbench.benchmark.TPCHWorker;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,15 +43,15 @@ import java.util.Random;
 
 public class Phase {
     public enum Arrival {
-        REGULAR,POISSON,
+        REGULAR, POISSON,
     }
 
     private final Random gen = new Random();
-    public final String benchmarkName;
+    private final String benchmarkName;
     public final int id;
     public final int time;
-    public final int rate;
-    public final Arrival arrival;
+    final int rate;
+    final Arrival arrival;
 
 
     private final boolean rateLimited;
@@ -61,7 +62,7 @@ public class Phase {
     private final int num_weights;
     private int activeTerminals;
     private int nextSerial;
-    
+
 
     Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
         ArrayList<Double> w = new ArrayList<Double>();
@@ -80,22 +81,22 @@ public class Phase {
         this.timed = timed;
         this.nextSerial = 1;
         this.activeTerminals = activeTerminals;
-        this.arrival=a;
+        this.arrival = a;
     }
-    
-    public boolean isRateLimited() {
+
+    boolean isRateLimited() {
         return rateLimited;
     }
 
-    public boolean isDisabled() {
+    boolean isDisabled() {
         return disabled;
     }
 
-    public boolean isSerial() {
+    boolean isSerial() {
         return serial;
     }
 
-    public boolean isTimed() {
+    private boolean isTimed() {
         return timed;
     }
 
@@ -111,51 +112,33 @@ public class Phase {
         this.nextSerial = 1;
     }
 
-    public int getActiveTerminals() {
+    int getActiveTerminals() {
         return activeTerminals;
     }
 
-    public int getWeightCount() {
+    int getWeightCount() {
         return (this.num_weights);
     }
-    public List<Double> getWeights() {
+
+    private List<Double> getWeights() {
         return (this.weights);
     }
-    
+
     /**
-     * Computes the sum of weights. Usually needs to add up to 100%
-     * 
-     * @return The total weight
+     * Determine the next transaction.
      */
-    public double totalWeight() {
-        double total = 0.0;
-        for (Double d : weights)
-            total += d;
-        return total;
-    }
-    
-    /**
-     * This simply computes the next transaction by randomly selecting one based
-     * on the weights of this phase.
-     * 
-     * @return
-     */
-    public int chooseTransaction() {
-        return chooseTransaction(false);
-    }
-    
-    public int chooseTransaction(boolean isColdQuery) {
+    int chooseTransaction(boolean isColdQuery, Worker worker) {
         if (isDisabled())
             return -1;
 
         if (isSerial()) {
             int ret;
-            synchronized(this) {
+            synchronized (this) {
                 ret = this.nextSerial;
 
                 // Serial runs should not execute queries with non-positive
                 // weights.
-                while (ret <= this.num_weights && weights.get(ret - 1).doubleValue() <= 0.0)
+                while (ret <= this.num_weights && weights.get(ret - 1) <= 0.0)
                     ret = ++this.nextSerial;
 
                 // If it's a cold execution, then we don't want to advance yet,
@@ -174,98 +157,49 @@ public class Phase {
                 }
             }
             return ret;
-        }
-        else {
-            int randomPercentage = gen.nextInt((int)totalWeight()) + 1;
-        double weight = 0.0;
-        for (int i = 0; i < this.num_weights; i++) {
-            weight += weights.get(i).doubleValue();
-            if (randomPercentage <= weight) {
-                return i + 1;
-            }
-        } // FOR
-        }
-
-        return -1;
-    }
-    
-    public int chooseTransaction(boolean isColdQuery, Worker worker) {
-        if (isDisabled())
-            return -1;
-
-        if (isSerial()) {
-            int ret;
-            synchronized(this) {
-                ret = this.nextSerial;
-
-                // Serial runs should not execute queries with non-positive
-                // weights.
-                while (ret <= this.num_weights && weights.get(ret - 1).doubleValue() <= 0.0)
-                    ret = ++this.nextSerial;
-
-                // If it's a cold execution, then we don't want to advance yet,
-                // since the hot run needs to execute the same query.
-                if (!isColdQuery) {
-                    // For timed, serial executions, we're doing a QPS (query
-                    // throughput) run, so we loop through the list multiple
-                    // times. Note that we do the modulus before the increment
-                    // so that we end up in the range [1,num_weights]
-                    if (isTimed()) {
-                        assert this.isThroughputRun();
-                        this.nextSerial %= this.num_weights;
-                    }
-
-                    ++this.nextSerial;
-                }
-            }
-            return ret;
-        }
-        else {
-            
-            //HTAPB:
-            if(worker instanceof TPCCWorker){
+        } else {
+            // HTAPB:
+            if (worker instanceof TPCCWorker) {
                 int randomPercentage = gen.nextInt(100) + 1;
                 double weight = 0.0;
                 for (int i = 0; i < this.num_weights; i++) {
-                    weight += weights.get(i).doubleValue();
+                    weight += weights.get(i);
                     if (randomPercentage <= weight) {
                         return i + 1;
                     }
                 } // FOR
-            }
-            else if(worker instanceof TPCHWorker){
+            } else if (worker instanceof TPCHWorker) {
                 int randomPercentage = gen.nextInt(100) + 101;
                 //int randomPercentage = RandomParameters.randBetween(101, 200)+1;
                 double weight = 0.0;
                 for (int i = 0; i < this.num_weights; i++) {
-                    weight += weights.get(i).doubleValue();
+                    weight += weights.get(i);
                     if (randomPercentage <= weight) {
                         return i + 1;
                     }
                 } // FOR
-            
+
             }
         }
 
         return -1;
     }
-    
+
     /**
      * Returns a string for logging purposes when entering the phase
-     * 
+     *
      * @return Loggin String
      */
-    public String currentPhaseString() {
-        String retString ="[Starting Phase] [Workload= " + benchmarkName + "] ";
-        if (isDisabled()){
+    String currentPhaseString() {
+        String retString = "[Starting Phase] [Workload= " + benchmarkName + "] ";
+        if (isDisabled()) {
             retString += "[Disabled= true]";
         } else {
             if (isLatencyRun()) {
                 retString += "[Serial= true] [Time= n/a] ";
-            }
-            else {
-                retString += "[Serial= " + (isSerial()? "true" : "false")
-                             + "] [Time= " + time + "] ";
+            } else {
+                retString += "[Serial= " + (isSerial() ? "true" : "false")
+                        + "] [Time= " + time + "] ";
             }
             retString += "[Rate= " + (isRateLimited() ? rate : "unlimited") + "] [Arrival= " + arrival + "] [Ratios= " + getWeights() + "] [Active Workers=" + getActiveTerminals() + "]";
         }

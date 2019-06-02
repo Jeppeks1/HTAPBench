@@ -40,14 +40,14 @@ import java.sql.Timestamp;
 
 public class Q5 extends GenericQuery {
 	
-    private SQLStmt buildQueryStmt(Clock clock){  
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
         String region = random.getRandomRegion();
-        
+
         int year = RandomParameters.randBetween(1993, 1997);
         long date1 = RandomParameters.convertDatetoLong(year, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, 1, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        long date2 = RandomParameters.convertDatetoLong(year + 1, 1, 1);
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
         
         String query = "SELECT n_name, "
@@ -78,12 +78,6 @@ public class Q5 extends GenericQuery {
         return new SQLStmt(query);
     }
 
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);

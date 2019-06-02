@@ -41,19 +41,19 @@ import java.sql.Timestamp;
 
 public class Q20 extends GenericQuery {
     
-    private SQLStmt buildQueryStmt(Clock clock){ 
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
         String nation = random.getRandomNation();
-        String char1 = random.generateRandomCharacter()+"%";
-        
+        String char1 = random.generateRandomCharacter() + "%";
+
         int year = RandomParameters.randBetween(1993, 1997);
         int month = RandomParameters.randBetween(1, 12);
         long date1 = RandomParameters.convertDatetoLong(year, month, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, month, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        long date2 = RandomParameters.convertDatetoLong(year + 1, month, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
-        
+
         String query = "SELECT su_name, "
             +        "su_address "
             + "FROM "
@@ -75,13 +75,7 @@ public class Q20 extends GenericQuery {
             + "ORDER BY su_name";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {        
         return buildQueryStmt(clock);

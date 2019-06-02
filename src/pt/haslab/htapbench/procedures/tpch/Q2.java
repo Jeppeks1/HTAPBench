@@ -39,12 +39,13 @@ import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q2 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
         String region = random.getRandomRegion();
-        region = region.substring(0, region.length()-1)+"%";
-        String i_data = "%"+random.generateRandomCharacter();
+        region = region.substring(0, region.length() - 1) + "%";
+        String i_data = "%" + random.generateRandomCharacter();
+
         String query ="SELECT su_suppkey, "
             +        "su_name, "
             +        "n_name, "
@@ -57,7 +58,7 @@ public class Q2 extends GenericQuery {
             + HTAPBConstants.TABLENAME_ITEM + ", "
             + HTAPBConstants.TABLENAME_SUPPLIER + ", "
             + HTAPBConstants.TABLENAME_STOCK + ", "
-            + HTAPBConstants.TABLENAME_NATION +", " 
+            + HTAPBConstants.TABLENAME_NATION +", "
             + HTAPBConstants.TABLENAME_REGION +", "
             +   "(SELECT s_i_id AS m_i_id, MIN(s_quantity) AS m_s_quantity "
             +    "FROM "
@@ -80,15 +81,9 @@ public class Q2 extends GenericQuery {
             +          "su_name, "
             +          "i_id";
         return new SQLStmt(query);
-        
+
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt();

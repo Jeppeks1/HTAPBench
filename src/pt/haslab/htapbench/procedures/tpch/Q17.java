@@ -40,9 +40,9 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q17 extends GenericQuery {
 	
-    private SQLStmt buildQueryStmt(){  
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
-        String st1 = "%"+random.generateRandomCharacter();
+        String st1 = "%" + random.generateRandomCharacter();
         
         String query = "SELECT SUM(ol_amount) / 2.0 AS avg_yearly "
             + "FROM "+ HTAPBConstants.TABLENAME_ORDERLINE + ", "
@@ -57,13 +57,7 @@ public class Q17 extends GenericQuery {
             +   "AND ol_quantity < t.a";
        return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
     protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
         return buildQueryStmt();

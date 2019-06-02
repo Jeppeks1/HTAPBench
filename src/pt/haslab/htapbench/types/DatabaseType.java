@@ -1,38 +1,43 @@
-/******************************************************************************
- *  Copyright 2015 by OLTPBenchmark Project                                   *
- *                                                                            *
- *  Licensed under the Apache License, Version 2.0 (the "License");           *
- *  you may not use this file except in compliance with the License.          *
- *  You may obtain a copy of the License at                                   *
- *                                                                            *
- *    http://www.apache.org/licenses/LICENSE-2.0                              *
- *                                                                            *
- *  Unless required by applicable law or agreed to in writing, software       *
- *  distributed under the License is distributed on an "AS IS" BASIS,         *
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
- *  See the License for the specific language governing permissions and       *
- *  limitations under the License.                                            *
- ******************************************************************************
-/*
- * Copyright 2017 by INESC TEC                                                                                                
- * This work was based on the OLTPBenchmark Project                          
+/**
+ * Copyright 2015 by OLTPBenchmark Project                                   *
+ * *
+ * Licensed under the Apache License, Version 2.0 (the "License");           *
+ * you may not use this file except in compliance with the License.          *
+ * You may obtain a copy of the License at                                   *
+ * *
+ * http://www.apache.org/licenses/LICENSE-2.0                              *
+ * *
+ * Unless required by applicable law or agreed to in writing, software       *
+ * distributed under the License is distributed on an "AS IS" BASIS,         *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
+ * See the License for the specific language governing permissions and       *
+ * limitations under the License.                                            *
+ * *****************************************************************************
+ * /*
+ * Copyright 2017 by INESC TEC
+ * This work was based on the OLTPBenchmark Project
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * <p>
+ * List of the database management systems that we support
+ * in the framework.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");           
- * you may not use this file except in compliance with the License.          
- * You may obtain a copy of the License at                                   
- *
- * http://www.apache.org/licenses/LICENSE-2.0                              
- *
- * Unless required by applicable law or agreed to in writing, software       
- * distributed under the License is distributed on an "AS IS" BASIS,         
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
- * See the License for the specific language governing permissions and       
- * limitations under the License. 
+ * @author pavlo
  */
 /**
-* List of the database management systems that we support 
-* in the framework.
-* @author pavlo
+ * List of the database management systems that we support
+ * in the framework.
+ * @author pavlo
  */
 package pt.haslab.htapbench.types;
 
@@ -56,22 +61,21 @@ public enum DatabaseType {
     HSQLDB,
     H2,
     MONETDB,
-    NUODB
-    ;
-    
-    public static final DatabaseType TEST_TYPE = DatabaseType.HSQLDB; 
-    
+    NUODB;
+
+    public static final DatabaseType TEST_TYPE = DatabaseType.HSQLDB;
+
     protected static final Map<Integer, DatabaseType> idx_lookup = new HashMap<Integer, DatabaseType>();
     protected static final Map<String, DatabaseType> name_lookup = new HashMap<String, DatabaseType>();
+
     static {
         for (DatabaseType vt : EnumSet.allOf(DatabaseType.class)) {
             DatabaseType.idx_lookup.put(vt.ordinal(), vt);
             DatabaseType.name_lookup.put(vt.name().toUpperCase(), vt);
         }
     }
-    
+
     public static DatabaseType get(String name) {
-        DatabaseType ret = DatabaseType.name_lookup.get(name.toUpperCase());
-        return (ret);
+        return DatabaseType.name_lookup.get(name.toUpperCase());
     }
 }

@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -33,15 +33,15 @@
 package pt.haslab.htapbench.util.dbms_collectors;
 
 import org.apache.log4j.Logger;
-
 import java.sql.*;
+
 import pt.haslab.htapbench.catalog.Catalog;
 
 class MYSQLCollector extends DBCollector {
     private static final Logger LOG = Logger.getLogger(MYSQLCollector.class);
     private static final String VERSION = "VERSION";
 
-    public MYSQLCollector(String oriDBUrl, String username, String password) {
+    MYSQLCollector(String oriDBUrl, String username, String password) {
         String dbUrl = oriDBUrl.substring(0, oriDBUrl.lastIndexOf('/'));
         dbUrl = dbUrl + "/information_schema";
         try {
@@ -49,7 +49,7 @@ class MYSQLCollector extends DBCollector {
             Catalog.setSeparator(conn);
             Statement s = conn.createStatement();
             ResultSet out = s.executeQuery("SELECT * FROM GLOBAL_VARIABLES;");
-            while(out.next()) {
+            while (out.next()) {
                 dbConf.put(out.getString("VARIABLE_NAME"), out.getString("VARIABLE_VALUE"));
             }
         } catch (SQLException e) {
@@ -62,7 +62,7 @@ class MYSQLCollector extends DBCollector {
         String dbVersion = dbConf.get(VERSION);
         int verIdx = dbVersion.indexOf('-');
         if (verIdx >= 0)
-	        dbVersion = dbVersion.substring(0, verIdx);
+            dbVersion = dbVersion.substring(0, verIdx);
         return dbVersion;
     }
 }
