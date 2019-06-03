@@ -2,10 +2,10 @@
 <parameters>
 
     <!-- Connection details -->
-    <dbtype>postgres</dbtype>
+    <dbtype>voltdb</dbtype>
     <DBName>HTAPB</DBName>
-    <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://localhost:5432/htapb</DBUrl>
+    <driver>org.voltdb.jdbc.Driver</driver>
+    <DBUrl>jdbc:voltdb://localhost:21212</DBUrl>
     <username>hiveuser</username>
     <password>hiveuser</password>
     <isolation>TRANSACTION_READ_COMMITTED</isolation>

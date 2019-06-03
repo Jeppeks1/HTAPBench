@@ -2,10 +2,10 @@
 <parameters>
 
     <!-- Connection details -->
-    <dbtype>postgres</dbtype>
+    <dbtype>mysql</dbtype>
     <DBName>HTAPB</DBName>
-    <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://localhost:5432/htapb</DBUrl>
+    <driver>com.mysql.cj.jdbc.Driver</driver>
+    <DBUrl>jdbc:mysql://localhost:3306/htapb?useLegacyDatetimeCode=false&amp;serverTimezone=Europe/Copenhagen</DBUrl>
     <username>hiveuser</username>
     <password>hiveuser</password>
     <isolation>TRANSACTION_READ_COMMITTED</isolation>
