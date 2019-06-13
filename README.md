@@ -23,7 +23,7 @@ Before you continue ensure that:
 - In the database engine to be tested, create a user/password and grant all privileges to your test database.
 - In the database engine to be tested, install the database schema.
 ```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --create true --load false --generateFiles false --filePath yourdir/ --execute false --calibrate false
+java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --create true --filePath yourdir/
 ```
 # C. Populate
 Before running HTAPBench, you will need to load data into the database. The generated workload is computed according to the configured TPS. If you change this parameter, you need to generate the database files again. 
@@ -32,7 +32,7 @@ You have 2 choices
 
 1. Generate the CSV files to populate the database. (We recommend this method as it usually loads data faster.)
 ```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --generateFiles true --filePath dir --execute false --calibrate true
+java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --generateFiles true --filePath dir --calibrate true
 ```
 Afterwards you need to connect to the database engine console and use a Bulk Load command.
 e.g., in Postgresql use the psql command to establish a connection and load each (e.g., WAREHOUSE and OORDER) table in the schema. 
@@ -45,7 +45,7 @@ e.g., in Postgresql use the psql command to establish a connection and load each
 
 2. Populate the database directly from HTAPBench. This internally establishes a connection and performs insert statements.
 ```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --load true --execute false --calibrate true
+java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --load true --calibrate true
 ```
 
 # C. Run Tests
@@ -53,7 +53,7 @@ Before running any tests ensure that the previous stage was successfully complet
 
 Then run:
 ```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c config/htapb_config_postgres.xml --create false --load false --execute true --s 120 --calibrate false
+java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c config/htapb_config_postgres.xml --execute true --s 120
 ```
 
 # Publications
