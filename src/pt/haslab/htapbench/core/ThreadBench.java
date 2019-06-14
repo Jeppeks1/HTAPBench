@@ -193,6 +193,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
 
         workState.switchToNextPhase();
         Phase phase = workState.getCurrentPhase();
+        phase.offsetTime(isTPCC);
 
         LOG.info(phase.currentPhaseString());
 
@@ -208,7 +209,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
 
         boolean resetQueues = true;
 
-        long delta = phase.time * 1000000000L;
+        long testDurationNs = phase.time * 1000000000L;
 
         // Initialize the Monitor
         if (this.intervalMonitor > 0) {
@@ -259,8 +260,13 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
                     // Latency runs (serial run through each query) have their own
                     // state to mark completion
                     phaseComplete = benchmarkState.getState() == State.LATENCY_COMPLETE;
-                else
-                    phaseComplete = benchmarkState.getState() == State.MEASURE && (start + delta <= now);
+                else {
+                    // Check if the current phase is complete
+                    if (isTPCC)
+                        phaseComplete = benchmarkState.getState() == State.MEASURE && (now - start >= testDurationNs);
+                    else
+                        phaseComplete = (now - start >= testDurationNs);
+                }
             }
 
             // Go to next phase if this one is complete
@@ -301,7 +307,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
                         // speed
                         // intervalNs = (long) (1000000000. / (double)
                         // lowestRate + 0.5);
-                        delta += phase.time * 1000000000L;
+                        testDurationNs += phase.time * 1000000000L;
                     }
                 }
             }

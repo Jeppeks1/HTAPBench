@@ -49,7 +49,7 @@ public class Phase {
     private final Random gen = new Random();
     private final String benchmarkName;
     public final int id;
-    public final int time;
+    public int time;
     final int rate;
     final Arrival arrival;
 
@@ -122,6 +122,22 @@ public class Phase {
 
     private List<Double> getWeights() {
         return (this.weights);
+    }
+
+    /**
+     * Offset the test duration of the OLAP workers to adjust for the artificial
+     * delay introduced when sleeping for the first minute of the test.
+     *
+     * This ensures that both OLAP and OLTP workers finish at the same time.
+     * The sleep duration is assumed to be one minute in the OLAPWorkerThread class.
+     *
+     * @param isTPCC Boolean value indicating if the current worker is a TPCCWorker.
+     */
+    void offsetTime(boolean isTPCC){
+        if (!isTPCC)
+            this.time = this.time - 60;
+
+        assert this.time > 0;
     }
 
     /**

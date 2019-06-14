@@ -57,7 +57,7 @@ public class OLAPWorkerThread implements Runnable {
     public void run() {
         try {
             // The first few minutes should consist of only OLTP workload
-            Thread.sleep(2 * 60 * 1000);
+            Thread.sleep(60 * 1000);
             results = ThreadBench.runThreadBench(workers, workConf, intervalMonitor);
         } catch (InterruptedException ex) {
             Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
