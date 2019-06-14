@@ -42,19 +42,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
-import pt.haslab.htapbench.api.Procedure.UserAbortException;
+import pt.haslab.htapbench.api.Procedure.NewOrderException;
 import pt.haslab.htapbench.catalog.Catalog;
 import pt.haslab.htapbench.core.LatencyRecord;
 import pt.haslab.htapbench.core.Phase;
 import pt.haslab.htapbench.core.SubmittedProcedure;
 import pt.haslab.htapbench.core.WorkloadConfiguration;
 import pt.haslab.htapbench.core.WorkloadState;
+import pt.haslab.htapbench.procedures.tpch.GenericQuery.InvalidResultException;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.types.ResultSetResult;
 import pt.haslab.htapbench.types.State;
 import pt.haslab.htapbench.types.TransactionStatus;
 import pt.haslab.htapbench.util.Histogram;
 import pt.haslab.htapbench.util.StringUtil;
+
+import static pt.haslab.htapbench.types.TransactionStatus.INVALID_RESULT;
+import static pt.haslab.htapbench.types.TransactionStatus.SUCCESS;
 
 public abstract class Worker implements Runnable {
     private static final Logger LOG = Logger.getLogger(Worker.class);
@@ -77,10 +81,10 @@ public abstract class Worker implements Runnable {
     private final Map<Class<? extends Procedure>, Procedure> class_procedures = new HashMap<Class<? extends Procedure>, Procedure>();
 
     private final Histogram<TransactionType> txnSuccess = new Histogram<TransactionType>();
-    private final Histogram<TransactionType> txnAbort = new Histogram<TransactionType>();
+    private final Histogram<TransactionType> txnAborted = new Histogram<TransactionType>();
     private final Histogram<TransactionType> txnRetry = new Histogram<TransactionType>();
     private final Histogram<TransactionType> txnErrors = new Histogram<TransactionType>();
-    private final Map<TransactionType, Histogram<String>> txnAbortMessages = new HashMap<TransactionType, Histogram<String>>();
+    private final Map<TransactionType, Histogram<String>> txnRecordedMessages = new HashMap<TransactionType, Histogram<String>>();
 
     private boolean seenDone = false;
 
@@ -184,7 +188,7 @@ public abstract class Worker implements Runnable {
     }
 
     public final Histogram<TransactionType> getTransactionAbortHistogram() {
-        return (this.txnAbort);
+        return (this.txnAborted);
     }
 
     public final Histogram<TransactionType> getTransactionErrorHistogram() {
@@ -192,7 +196,7 @@ public abstract class Worker implements Runnable {
     }
 
     public final Map<TransactionType, Histogram<String>> getTransactionAbortMessageHistogram() {
-        return (this.txnAbortMessages);
+        return (this.txnRecordedMessages);
     }
 
     synchronized public void setCurrStatement(Statement s) {
@@ -372,10 +376,10 @@ public abstract class Worker implements Runnable {
         TransactionType next = null;
         TransactionStatus status = TransactionStatus.RETRY;
         final DatabaseType dbType = wrkld.getDBType();
-        final boolean recordAbortMessages = wrkld.getRecordAbortMessages();
 
         try {
             while (status == TransactionStatus.RETRY && this.wrkldState.getGlobalState() != State.DONE) {
+
                 if (next == null) {
                     next = transactionTypes.getType(pieceOfWork.getType());
                 }
@@ -383,109 +387,51 @@ public abstract class Worker implements Runnable {
                 assert (!next.isSupplemental()) : "Trying to select a supplemental transaction " + next;
 
                 try {
-                    // For Postgres, we have to create a savepoint in order
-                    // to rollback a user aborted transaction
-//        	        if (dbType == DatabaseType.POSTGRES) {
-//        	            savepoint = this.conn.setSavepoint();
-//        	            // if (LOG.isDebugEnabled())
-//        	            LOG.info("Created SavePoint: " + savepoint);
-//        	        }
-
-                    status = this.executeWork(next, rows);
-
-                } catch (UserAbortException ex) {
-                    if (LOG.isDebugEnabled()) LOG.debug(next + " Aborted", ex);
-
-                    if (recordAbortMessages) {
-                        Histogram<String> error_h = this.txnAbortMessages.get(next);
-                        if (error_h == null) {
-                            error_h = new Histogram<String>();
-                            this.txnAbortMessages.put(next, error_h);
-                        }
-                        error_h.put(StringUtil.abbrv(ex.getMessage(), 20));
-                    }
-
-                    this.conn.rollback();
-                    this.txnAbort.put(next);
-
-                    break;
+                    status = executeWork(next, rows);
                 } catch (SQLException ex) {
-                    // Database System Specific Exception Handling
-
-                    //TODO: Handle acceptable error codes for every DBMS     
-                    LOG.debug(next + " " + ex.getMessage() + " " + ex.getErrorCode() + " - " + ex.getSQLState());
-
-                    this.txnErrors.put(next);
-                    this.conn.rollback();
-
-                    if (ex.getSQLState() == null) {
-                        continue;
-                    } else if (ex.getErrorCode() == 1213 && ex.getSQLState().equals("40001")) {
-                        // MySQLTransactionRollbackException
-                        continue;
-                    } else if (ex.getErrorCode() == 1205 && ex.getSQLState().equals("41000")) {
-                        // MySQL Lock timeout
-                        continue;
-                    } else if (ex.getErrorCode() == 1205 && ex.getSQLState().equals("40001")) {
-                        // SQLServerException Deadlock
-                        continue;
-                    } else if (ex.getErrorCode() == -911 && ex.getSQLState().equals("40001")) {
-                        // DB2Exception Deadlock
-                        continue;
-                    } else if (ex.getErrorCode() == 0 && ex.getSQLState() != null && ex.getSQLState().equals("40001")) {
-                        // Postgres serialization
-                        continue;
-                    } else if (ex.getErrorCode() == 8177 && ex.getSQLState().equals("72000")) {
-                        // ORA-08177: Oracle Serialization
-                        continue;
-                    } else if ((ex.getErrorCode() == 0 && ex.getSQLState().equals("57014"))
-                            || (ex.getErrorCode() == -952 && ex.getSQLState().equals("57014")) // DB2
-                            ) {
-                        // Query cancelled by benchmark because we changed
-                        // state. That's fine! We expected/caused this.
-                        status = TransactionStatus.RETRY_DIFFERENT;
-                        continue;
-                    } else if (ex.getErrorCode() == 0 && ex.getSQLState().equals("02000")) {
-                        // No results returned. That's okay, we can proceed to
-                        // a different query. But we should send out a warning,
-                        // too, since this is unusual.
-                        status = TransactionStatus.RETRY_DIFFERENT;
-                        continue;
-                    } else {
-                        // UNKNOWN: In this case .. Retry as well!
-                        continue;
-                        //FIXME Disable this for now
-                        // throw ex;
-                    }
+                    // Handle acceptable database specific SQLExceptions
+                    status = handleSQLException(next, ex);
                 } finally {
+                    // Increment the transaction counter, as it represents started transactions
+                    txncount.incrementAndGet();
+
+                    // Perform a rollback if the status requires it
+                    if (!(status == SUCCESS || status == INVALID_RESULT))
+                        conn.rollback();
+
+                    // Determine which logging actions should be taken based on the status.
                     switch (status) {
                         case SUCCESS:
-                            this.txnSuccess.put(next);
-                            txncount.incrementAndGet();
-                            //LOG.debug("Executed a new invocation of " + next);
-                            LOG.info("Executed a new invocation of " + next);
+                            txnSuccess.put(next);
                             break;
-                        case RETRY_DIFFERENT:
-                            this.txnRetry.put(next);
-                            txncount.incrementAndGet();
-                            return null;
+                        case ABORTED:
+                            txnAborted.put(next);
+                            break;
                         case RETRY:
-                            LOG.debug("Retrying transaction...");
-                            txncount.incrementAndGet();
-                            continue;
+                            txnRetry.put(next);
+                            break;
+                        case INTERRUPTED:
+                            LOG.debug("Benchmark or user interrupted transaction: " + next);
+                            break;
+                        case INVALID_RESULT:
+                            // This should be treated as an outright error due to query validation
+                            txnErrors.put(next);
+                            break;
+                        case UNKNOWN_EXCEPTION:
+                            LOG.warn("Caught an unknown SQLException. Examine the recorded error messages.");
+                            txnErrors.put(next);
+                            break;
                         default:
-                            assert (false) :
-                                    String.format("Unexpected status '%s' for %s", status, next);
+                            assert (false) : String.format("Unexpected status '%s' for %s", status, next);
                     } // SWITCH
                 }
-
             } // WHILE
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error in %s when executing %s [%s]",
                     this.getName(), next, dbType), ex);
         }
 
-        return (next);
+        return next;
     }
 
     /**
@@ -499,7 +445,7 @@ public abstract class Worker implements Runnable {
     /**
      * Invoke a single transaction for the given TransactionType
      */
-    protected abstract TransactionStatus executeWork(TransactionType txnType, ResultSetResult rows) throws UserAbortException, SQLException;
+    protected abstract TransactionStatus executeWork(TransactionType txnType, ResultSetResult rows) throws NewOrderException, SQLException;
 
     /**
      * Called at the end of the test to do any clean up that may be required.
@@ -515,5 +461,88 @@ public abstract class Worker implements Runnable {
     public void initializeState() {
         assert (this.wrkldState == null);
         this.wrkldState = this.wrkld.getWorkloadState();
+    }
+
+    /**
+     * Records the given exception message in a Histogram and associates
+     * the message with the TransactionType that caused the exception.
+     * If the offending SQL statement is given in the form of an
+     * InvalidResultException, the statement will be debug-logged.
+     *
+     * @param next The TransactionType that was running when an Exception
+     *             was thrown.
+     * @param ex The Exception that was thrown.
+     */
+    protected void recordMessage(TransactionType next, Exception ex) {
+        // Handle the logging
+        if (ex instanceof InvalidResultException)
+            LOG.debug("Query " + next + " resulted in exception:\n" + ex.getMessage()
+                    + " for statement:\n" + ((InvalidResultException) ex).getStmt());
+        else
+            LOG.debug("Caught exception: " + ex.getMessage());
+
+        // Record the message to be able to report on all exceptions at once
+        if (wrkld.getRecordExceptions()) {
+            Histogram<String> error_h = txnRecordedMessages.get(next);
+            if (error_h == null) {
+                error_h = new Histogram<String>();
+                txnRecordedMessages.put(next, error_h);
+            }
+            error_h.put(StringUtil.abbrv(ex.getMessage(), 20));
+        }
+    }
+
+    /**
+     * Database-system specific SQLException handling
+     *
+     * @return the TransactionStatus after handling the SQLException.
+     */
+    private TransactionStatus handleSQLException(TransactionType next, SQLException ex) {
+        TransactionStatus status;
+
+        // This is the only SQLException that should not be recorded as an error
+        if (ex.getMessage().contains("cancelled due to client request")) {
+            // The benchmark or the user requested the transaction to abort. This
+            // occurs when the benchmark state is updated and interruptWorkers is
+            // called or if the user manually enters a "kill" command.
+            return TransactionStatus.INTERRUPTED;
+        }
+
+        // Record the error message
+        recordMessage(next, ex);
+        txnErrors.put(next);
+
+        // Update the status
+        if (ex.getSQLState() == null) {
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == 1213 && ex.getSQLState().equals("40001")) {
+            // MySQLTransactionRollbackException
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == 1205 && ex.getSQLState().equals("41000")) {
+            // MySQL Lock timeout
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == 1205 && ex.getSQLState().equals("40001")) {
+            // SQLServerException Deadlock
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == -911 && ex.getSQLState().equals("40001")) {
+            // DB2Exception Deadlock
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == 0 && ex.getSQLState() != null && ex.getSQLState().equals("40001")) {
+            // Postgres serialization
+            status = TransactionStatus.ABORTED;
+        } else if (ex.getErrorCode() == 8177 && ex.getSQLState().equals("72000")) {
+            // ORA-08177: Oracle Serialization
+            status = TransactionStatus.ABORTED;
+        } else if ((ex.getErrorCode() == 0 && ex.getSQLState().equals("57014"))
+                || (ex.getErrorCode() == -952 && ex.getSQLState().equals("57014"))) {
+            // DB2: Query cancelled by benchmark because we changed state.
+            // That's fine! We expected/caused this.
+            status = TransactionStatus.ABORTED;
+        } else {
+            // Unknown error
+            status = TransactionStatus.UNKNOWN_EXCEPTION;
+        }
+
+        return status;
     }
 }

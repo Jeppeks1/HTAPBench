@@ -475,7 +475,7 @@ public class HTAPBench {
             wrkld.setDBUsername(xmlConfig.getString("username"));
             wrkld.setDBPassword(xmlConfig.getString("password"));
             wrkld.setIsolationMode(xmlConfig.getString("isolation" + pluginTest, isolationMode));
-            wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", false));
+            wrkld.setRecordExceptions(xmlConfig.getBoolean("recordExceptions", true));
             wrkld.setDataDir(xmlConfig.getString("datadir", "."));
             wrkld.setIdealClient(idealClient);
             wrkld.setFilesPath(generateFilesPath);
@@ -498,12 +498,14 @@ public class HTAPBench {
                 wrkld.setScaleFactor(xmlConfig.getDouble("warehouses"));
                 terminals = (int) xmlConfig.getDouble("warehouses") * 10;
                 wrkld.setTerminals(terminals);
+                wrkld.setHybridWrkld(false);
                 rateLimited = false;
             } else if (isBooleanOptionSet(argsLine, "olap")) {
                 setup.setWarehouses(xmlConfig.getInt("warehouses"));
                 wrkld.setScaleFactor(xmlConfig.getDouble("warehouses"));
                 terminals = (int) xmlConfig.getDouble("OLAP_workers");
                 wrkld.setOLAPTerminals(terminals);
+                wrkld.setHybridWrkld(false);
                 rateLimited = false;
             } else {
                 // HTAP workload
@@ -512,6 +514,7 @@ public class HTAPBench {
                 wrkld.setOLAPTerminals(1);
                 wrkld.setScaleFactor(setup.getWarehouses());
                 wrkld.setTargetTPS(setup.getTargetTPS());
+                wrkld.setHybridWrkld(true);
                 rateLimited = true;
             }
 

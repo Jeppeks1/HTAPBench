@@ -238,7 +238,7 @@ public class NewOrder extends TPCCProcedure {
 
 					rs.close();
 
-					throw new UserAbortException("EXPECTED new order rollback: I_ID = " + ol_i_id + " not found!");
+					throw new NewOrderException("EXPECTED new order rollback: I_ID = " + ol_i_id + " not found!");
 				}
 
 				float i_price = rs.getFloat("I_PRICE");
@@ -338,7 +338,7 @@ public class NewOrder extends TPCCProcedure {
 			stmtUpdateStock.executeBatch();
 
 			total_amount *= (1 + w_tax + d_tax) * (1 - c_discount);
-		} catch (UserAbortException userEx) {
+		} catch (NewOrderException userEx) {
 			LOG.debug("Caught an expected error in New Order");
 			throw userEx;
 		} finally {

@@ -48,6 +48,7 @@ public abstract class GenericQuery extends Procedure {
 
     protected static final Logger LOG = Logger.getLogger(GenericQuery.class);
 
+    private PreparedStatement stmt;
     private Worker owner;
 
     public void setOwner(Worker w) {
@@ -56,16 +57,11 @@ public abstract class GenericQuery extends Procedure {
 
     protected abstract SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf);
 
-    public int run(Connection conn, Clock clock, WorkloadConfiguration wrklConf) throws SQLException {
-        //initializing all prepared statements
-        PreparedStatement stmt = this.getPreparedStatement(conn, get_query(clock, wrklConf));
+    public int run(Connection conn, Clock clock, WorkloadConfiguration wrklConf)
+            throws SQLException, InvalidResultException {
+        // Initializing all prepared statements
+        stmt = this.getPreparedStatement(conn, get_query(clock, wrklConf));
 
-        LOG.debug("Query SQL STMT:" + get_query(clock, wrklConf).getSQL());
-
-        if (owner != null)
-            owner.setCurrStatement(stmt);
-
-        LOG.info(this.getClass());
         ResultSet rs;
         try {
             rs = stmt.executeQuery();
@@ -79,14 +75,97 @@ public abstract class GenericQuery extends Procedure {
             }
         }
 
+        if (owner != null)
+            owner.setCurrStatement(null);
+
+        return validateResult(rs, wrklConf.getHybridWrkld());
+    }
+
+    /**
+     * Validate the results based on the number of rows retrieved from the
+     * result set and depending on the current workload.
+     *
+     * @param rs the ResultSet to be validated
+     * @param hybridWrkld boolean flag indicating if the current workload is hybrid
+     * @return the number of rows in the ResultSet
+     * @throws SQLException if an exception is thrown while operating on the ResultSet
+     * @throws InvalidResultException if the result is NULL or if the ResultSet is empty
+     */
+    private int validateResult(ResultSet rs, boolean hybridWrkld)
+            throws SQLException, InvalidResultException {
+        // Determine the number of rows in the ResultSet
         int t = 0;
         while (rs.next()) {
             t = t + 1;
         }
 
-        if (owner != null)
-            owner.setCurrStatement(null);
+        // ----------------------------------------
+        //           Validation Exceptions
+        // ----------------------------------------
+        // The reasons for skipping some queries can
+        // be found in the comments of the class.
+
+        // Always skip validation of Q8
+//        if (this instanceof Q8)
+//            return t;
+//
+//        if (!hybridWrkld){
+//            if (this instanceof Q11 || this instanceof Q17 || this instanceof Q22)
+//                return t;
+//        }
+
+        // ----------------------------------------
+        //            Actual Validation
+        // ----------------------------------------
+
+        // Check that non-zero rows are returned in the ResultSet
+        if (t == 0) {
+            throw new InvalidResultException("Query " + this + " returned zero rows", stmt);
+        }
+
+        // Check that the returned value is not NULL
+        if (t == 1) {
+            rs.beforeFirst();
+            rs.next();
+            String result = rs.getString(1);
+            if (result == null)
+                throw new InvalidResultException("Query " + this + " returned a null value", stmt);
+        }
 
         return t;
     }
+
+    /**
+     * Thrown from a TPC-H procedure to indicate to the Worker
+     * that the result set should be treated as invalid.
+     */
+    public static class InvalidResultException extends RuntimeException {
+        private static final long serialVersionUID = -1L;
+
+        private PreparedStatement stmt = null;
+
+        /**
+         * Constructs a new InvalidResultException with the specified detail message.
+         */
+        InvalidResultException(String msg, Throwable ex, PreparedStatement stmt) {
+            super(msg, ex);
+            this.stmt = stmt;
+        }
+
+        /**
+         * Constructs a new InvalidResultException with the specified detail message.
+         */
+        InvalidResultException(String msg, PreparedStatement stmt) {
+            this(msg, null, stmt);
+        }
+
+        /**
+         * Get the PreparedStatement that caused an InvalidResultException
+         *
+         * @return PreparedStatement causing the InvalidResultException
+         */
+        public PreparedStatement getStmt() {
+            return stmt;
+        }
+    } // END CLASS
 }

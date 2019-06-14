@@ -67,6 +67,7 @@ public class WorkloadConfiguration {
     private int terminals;
     private int OLAPterminals;
     private int numTxnTypes;
+    private boolean hybridWrkld;
     private boolean calibrate = false;
     private boolean generateFiles = false;
     private boolean idealClient = false;
@@ -103,7 +104,7 @@ public class WorkloadConfiguration {
     private int numberOfPhases = 0;
     private TransactionTypes transTypes = null;
     private int isolationMode = Connection.TRANSACTION_SERIALIZABLE;
-    private boolean recordAbortMessages = false;
+    private boolean recordExceptions = false;
     private String dataDir = null;
 
 
@@ -204,16 +205,20 @@ public class WorkloadConfiguration {
         this.calibrate = calibrate;
     }
 
-    void setRecordAbortMessages(boolean recordAbortMessages) {
-        this.recordAbortMessages = recordAbortMessages;
+    void setRecordExceptions(boolean recordExceptions) {
+        this.recordExceptions = recordExceptions;
     }
 
+    void setHybridWrkld(boolean flag){this.hybridWrkld = flag;}
+
+    public boolean getHybridWrkld(){return this.hybridWrkld;}
+
     /**
-     * Whether each worker should record the transaction's UserAbort messages
+     * Whether each worker should record the transaction's exception messages.
      * This primarily useful for debugging a benchmark
      */
-    public boolean getRecordAbortMessages() {
-        return (this.recordAbortMessages);
+    public boolean getRecordExceptions() {
+        return (this.recordExceptions);
     }
 
     /**

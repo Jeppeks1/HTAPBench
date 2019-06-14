@@ -43,23 +43,21 @@ package pt.haslab.htapbench.benchmark;
 import java.sql.SQLException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import org.apache.log4j.Logger;
-
 import pt.haslab.htapbench.procedures.tpcc.TPCCProcedure;
 import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import pt.haslab.htapbench.types.ResultSetResult;
 import pt.haslab.htapbench.types.TransactionStatus;
-import pt.haslab.htapbench.util.SimplePrinter;
-import pt.haslab.htapbench.api.Procedure.UserAbortException;
+import pt.haslab.htapbench.api.Procedure.NewOrderException;
 import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.api.Worker;
 import pt.haslab.htapbench.core.WorkloadConfiguration;
 
 public class TPCCWorker extends Worker {
 
+    private static final Logger LOG = Logger.getLogger(TPCCWorker.class);
     private static final AtomicInteger terminalId = new AtomicInteger(0);
     private AtomicInteger ts_counter;
 
@@ -96,31 +94,34 @@ public class TPCCWorker extends Worker {
      * Executes a single TPCC transaction of type transactionType.
      */
     @Override
-    protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows) throws UserAbortException, SQLException {
-        try {
-            TPCCProcedure proc = (TPCCProcedure) this.getProcedure(nextTransaction.getProcedureClass());
-            proc.run(conn, rand, terminalWarehouseID, numWarehouses, terminalDistrictLowerID, terminalDistrictUpperID, this);
+    protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows) throws SQLException {
+        // Get the TPCC procedure to be executed
+        TPCCProcedure proc = (TPCCProcedure) this.getProcedure(nextTransaction.getProcedureClass());
 
-            if (idealClient) {
-                // Wait the required ThinkTime + KeyingTime
-                setThinkTime(thinkTime() + proc.getKeyingTime());
-                Thread.sleep(getThinkTime());
-            }
-        } catch (ClassCastException ex) {
-            //fail gracefully
-            System.err.println("TPC-C: We have been invoked with an INVALID transactionType?!");
-            throw new RuntimeException("Bad transaction type = " + nextTransaction);
+        try {
+            proc.run(conn, rand, terminalWarehouseID, numWarehouses, terminalDistrictLowerID, terminalDistrictUpperID, this);
+        } catch (NewOrderException ex) {
+            return TransactionStatus.ABORTED;
         } catch (RuntimeException ex) {
+            System.err.println("TPC-C " + proc + " will restart: " + ex.getMessage());
+            return TransactionStatus.ABORTED;
+        } finally {
             conn.rollback();
-            System.err.println("TPC-C txn will restart " + ex.getMessage());
-            return (TransactionStatus.RETRY_DIFFERENT);
-        } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(TPCCWorker.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         conn.commit();
 
-        return (TransactionStatus.SUCCESS);
+        try {
+            // Wait the required ThinkTime + KeyingTime if requested
+            if (idealClient) {
+                setThinkTime(thinkTime() + proc.getKeyingTime());
+                Thread.sleep(getThinkTime());
+            }
+        } catch (InterruptedException ex) {
+            LOG.warn("InterruptedException occurred in " + proc + " after it committed.");
+        }
+
+        return TransactionStatus.SUCCESS;
     }
 
     public AtomicInteger getTs_conter() {
@@ -132,7 +133,7 @@ public class TPCCWorker extends Worker {
     }
 
     private long thinkTime() {
-        return (RandomParameters.negExp(rand, getThinkTime(), 0.36788, getThinkTime(), 4.54e-5, getThinkTime()));
+        return RandomParameters.negExp(rand, getThinkTime(), 0.36788, getThinkTime(), 4.54e-5, getThinkTime());
     }
 
     private long getThinkTime() {

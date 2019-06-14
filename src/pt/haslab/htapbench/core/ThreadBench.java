@@ -379,13 +379,13 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
 
             results.txnSuccess.putAll(txnTypes, 0);
             results.txnRetry.putAll(txnTypes, 0);
-            results.txnAbort.putAll(txnTypes, 0);
+            results.txnAborted.putAll(txnTypes, 0);
             results.txnErrors.putAll(txnTypes, 0);
 
             for (Worker w : workers) {
                 results.txnSuccess.putHistogram(w.getTransactionSuccessHistogram());
                 results.txnRetry.putHistogram(w.getTransactionRetryHistogram());
-                results.txnAbort.putHistogram(w.getTransactionAbortHistogram());
+                results.txnAborted.putHistogram(w.getTransactionAbortHistogram());
                 results.txnErrors.putHistogram(w.getTransactionErrorHistogram());
 
                 if (w.getWorkloadConfiguration().getCalibrate()) {
@@ -394,10 +394,10 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
                 }
 
                 for (Entry<TransactionType, Histogram<String>> e : w.getTransactionAbortMessageHistogram().entrySet()) {
-                    Histogram<String> h = results.txnAbortMessages.get(e.getKey());
+                    Histogram<String> h = results.txnRecordedMessages.get(e.getKey());
                     if (h == null) {
                         h = new Histogram<String>(true);
-                        results.txnAbortMessages.put(e.getKey(), h);
+                        results.txnRecordedMessages.put(e.getKey(), h);
                     }
                     h.putHistogram(e.getValue());
                 }

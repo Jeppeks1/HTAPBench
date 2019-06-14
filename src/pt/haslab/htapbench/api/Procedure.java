@@ -62,9 +62,6 @@ public abstract class Procedure {
         for (Entry<String, SQLStmt> e : this.name_stmt_xref.entrySet()) {
             this.stmt_name_xref.put(e.getValue(), e.getKey());
         } // FOR
-        if (LOG.isDebugEnabled())
-            LOG.debug(String.format("Initialized %s with %d SQLStmts: %s",
-                    this, this.name_stmt_xref.size(), this.name_stmt_xref.keySet()));
         return ((T)this);
     }
 
@@ -188,26 +185,26 @@ public abstract class Procedure {
     }
 
     /**
-     * Thrown from a Procedure to indicate to the Worker
-     * that the procedure should be aborted and rolled back.
+     * Thrown from a NewOrder Procedure to indicate to the Worker
+     * that the procedure should be aborted and rolled back due to
+     * an expected error (as required by the TPCC specification).
      */
-    public static class UserAbortException extends RuntimeException {
+    public static class NewOrderException extends RuntimeException {
         private static final long serialVersionUID = -1L;
 
         /**
          * Default Constructor
          */
-        UserAbortException(String msg, Throwable ex) {
+        NewOrderException(String msg, Throwable ex) {
             super(msg, ex);
         }
 
         /**
-         * Constructs a new UserAbortException
+         * Constructs a new NewOrderException
          * with the specified detail message.
          */
-        public UserAbortException(String msg) {
+        public NewOrderException(String msg) {
             this(msg, null);
         }
     } // END CLASS
-
 }
