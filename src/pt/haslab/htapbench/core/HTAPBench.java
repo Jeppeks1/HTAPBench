@@ -79,6 +79,7 @@ public class HTAPBench {
     private static List<BenchmarkModule> benchList = new ArrayList<BenchmarkModule>();
 
     private static String generateFilesPath;
+    private static boolean idealClient;
 
     public static void main(String[] args) throws Exception {
         // Initialize log4j
@@ -130,6 +131,7 @@ public class HTAPBench {
         options.addOption("ts", "tracescript", true, "Script of transactions to execute");
         options.addOption(null, "histograms", false, "Print txn histograms");
         options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
+        options.addOption("ic", "idealClient", false, "Determine the scaling factor based on an ideal client, default false");
 
         // Parse the command line arguments
         CommandLine argsLine = parser.parse(options, args);
@@ -181,6 +183,9 @@ public class HTAPBench {
             intervalMonitor = Integer.parseInt(argsLine.getOptionValue("im"));
         }
 
+        // Check if the idealClient flag has been set, indicating how the workload setup should proceed
+        idealClient = argsLine.hasOption("ic");
+
         // Retrieve the calibrate variable
         boolean calibrate = isBooleanOptionSet(argsLine, "calibrate");
 
@@ -193,7 +198,7 @@ public class HTAPBench {
 
         // Initialize the WorkloadSetup according to an ideal client
         WorkloadSetup setup = new WorkloadSetup(xmlConfig);
-        setup.computeWorkloadSetup();
+        setup.computeWorkloadSetup(idealClient);
 
         // Load the configuration for each benchmark in the plugin configuration
         configureBenchmarks(setup, argsLine, configFile, xmlConfig, pluginConfig);
@@ -472,6 +477,7 @@ public class HTAPBench {
             wrkld.setIsolationMode(xmlConfig.getString("isolation" + pluginTest, isolationMode));
             wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", false));
             wrkld.setDataDir(xmlConfig.getString("datadir", "."));
+            wrkld.setIdealClient(idealClient);
             wrkld.setFilesPath(generateFilesPath);
 
             // Use the command line to set the remaining configuration values

@@ -59,7 +59,7 @@ public class RandomExecutor {
         
         
         WorkloadSetup setup = new WorkloadSetup(xmlConfig);
-        setup.computeWorkloadSetup();
+        setup.computeWorkloadSetup(false);
         
         
         DensityConsultant density = new DensityConsultant(10000);

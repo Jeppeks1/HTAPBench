@@ -69,6 +69,7 @@ public class WorkloadConfiguration {
     private int numTxnTypes;
     private boolean calibrate = false;
     private boolean generateFiles = false;
+    private boolean idealClient = false;
     private String filesPath = "";
     private TraceReader traceReader = null;
     private int targetTPS;
@@ -186,6 +187,10 @@ public class WorkloadConfiguration {
     String getFilesPath() {
         return this.filesPath;
     }
+
+    void setIdealClient(boolean idealClient) {this.idealClient = idealClient;}
+
+    public boolean getIdealClient() {return this.idealClient;}
 
     void setGenerateFiles(boolean gen) {
         this.generateFiles = gen;

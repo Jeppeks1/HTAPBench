@@ -49,12 +49,14 @@ public class HTAPBenchmark extends BenchmarkModule {
 
     private AtomicInteger ts_counter;
     private DensityConsultant density;
+    private boolean idealClient;
 
     public HTAPBenchmark(WorkloadConfiguration workConf) {
         super(workConf.getBenchmarkName(), workConf, true);
         ts_counter = new AtomicInteger();
         int targetTPS = workConf.getTargetTPS();
         this.density = new DensityConsultant(targetTPS);
+        this.idealClient = workConf.getIdealClient();
     }
 
     /**
@@ -181,7 +183,7 @@ public class HTAPBenchmark extends BenchmarkModule {
                 String terminalName = terminalPrefix + "w" + w_id + "d" + lowerDistrictId + "-" + upperDistrictId;
 
                 TPCCWorker terminal = new TPCCWorker(w_id, lowerDistrictId, upperDistrictId,
-                        numWarehouses, this, ts_counter, clock);
+                        numWarehouses, idealClient, this, ts_counter, clock);
 
                 terminals[lowerTerminalId + terminalId] = terminal;
                 terminalNames[lowerTerminalId + terminalId] = terminalName;
