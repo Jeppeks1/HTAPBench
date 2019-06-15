@@ -60,6 +60,9 @@ class MYSQLCollector extends DBCollector {
     @Override
     public String collectVersion() {
         String dbVersion = dbConf.get(VERSION);
+        if (dbVersion == null)
+            dbVersion = "Failed to get MySQL version";
+
         int verIdx = dbVersion.indexOf('-');
         if (verIdx >= 0)
             dbVersion = dbVersion.substring(0, verIdx);
