@@ -48,10 +48,10 @@ public final class Results {
     private final int measuredRequests;
     public final DistributionStatistics latencyDistribution;
     final Histogram<TransactionType> txnSuccess = new Histogram<TransactionType>(true);
-    final Histogram<TransactionType> txnAbort = new Histogram<TransactionType>(true);
+    final Histogram<TransactionType> txnAborted = new Histogram<TransactionType>(true);
     final Histogram<TransactionType> txnRetry = new Histogram<TransactionType>(true);
     final Histogram<TransactionType> txnErrors = new Histogram<TransactionType>(true);
-    final Map<TransactionType, Histogram<String>> txnAbortMessages = new HashMap<TransactionType, Histogram<String>>();
+    final Map<TransactionType, Histogram<String>> txnRecordedMessages = new HashMap<TransactionType, Histogram<String>>();
     private int ts_counter = 0;
     private String name;
 
@@ -75,24 +75,24 @@ public final class Results {
     /**
      * Get a histogram of how often each transaction was executed
      */
-    final Histogram<TransactionType> getTransactionSuccessHistogram() {
+    final Histogram<TransactionType> getSuccessHistogram() {
         return (this.txnSuccess);
     }
 
-    final Histogram<TransactionType> getTransactionRetryHistogram() {
+    final Histogram<TransactionType> getRetryHistogram() {
         return (this.txnRetry);
     }
 
-    final Histogram<TransactionType> getTransactionAbortHistogram() {
-        return (this.txnAbort);
+    final Histogram<TransactionType> getAbortHistogram() {
+        return (this.txnAborted);
     }
 
-    final Histogram<TransactionType> getTransactionErrorHistogram() {
+    final Histogram<TransactionType> getErrorHistogram() {
         return (this.txnErrors);
     }
 
-    final Map<TransactionType, Histogram<String>> getTransactionAbortMessageHistogram() {
-        return (this.txnAbortMessages);
+    final Map<TransactionType, Histogram<String>> getRecordedMessagesHistogram() {
+        return (this.txnRecordedMessages);
     }
 
     public void setName(String name) {
@@ -171,5 +171,21 @@ public final class Results {
 
     void setTsCounter(int ts_counter) {
         this.ts_counter = ts_counter;
+    }
+
+    /**
+     * Combines the histograms in this Results and the histograms
+     * in the other Results.
+     *
+     * @param other the Results to be combined with this.
+     * @return the Results in this with the histograms combined.
+     */
+    Results combineHistograms(Results other){
+        // Combine the histograms
+        getSuccessHistogram().putHistogram(other.getSuccessHistogram());
+        getErrorHistogram().putHistogram(other.getErrorHistogram());
+        getAbortHistogram().putHistogram(other.getAbortHistogram());
+        getRetryHistogram().putHistogram(other.getRetryHistogram());
+        return this;
     }
 }

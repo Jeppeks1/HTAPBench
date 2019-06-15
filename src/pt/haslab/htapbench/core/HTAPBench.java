@@ -62,7 +62,6 @@ import pt.haslab.htapbench.benchmark.HTAPBenchmark;
 import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.util.FileUtil;
-import pt.haslab.htapbench.util.QueueLimitException;
 import pt.haslab.htapbench.util.ResultUploader;
 import pt.haslab.htapbench.util.StringUtil;
 import pt.haslab.htapbench.util.TimeUtil;
@@ -366,19 +365,33 @@ public class HTAPBench {
                     LOG.warn("No bucket size specified");
                 }
 
-                if (argsLine.hasOption("histograms")) {
-                    LOG.info(SINGLE_LINE);
-                    LOG.info("Completed Transactions:\n" + r.getTransactionSuccessHistogram() + "\n");
-                    LOG.info("Aborted Transactions:\n" + r.getTransactionAbortHistogram() + "\n");
-                    LOG.info("Rejected Transactions:\n" + r.getTransactionRetryHistogram());
-                    LOG.info("Unexpected Errors:\n" + r.getTransactionErrorHistogram());
-                    if (!r.getTransactionAbortMessageHistogram().isEmpty())
-                        LOG.info("User Aborts:\n" + StringUtil.formatMaps(r.getTransactionAbortMessageHistogram()));
-                } else if (LOG.isDebugEnabled()) {
-                    LOG.warn("No bucket size specified");
+                r.writeAllCSVAbsoluteTiming(rs);
+            }
+
+            if (argsLine.hasOption("histograms")) {
+                Results singleHistogram = results.get(0);
+
+                // Combine the histograms into a single histogram in case of a hybrid workload
+                if (results.size() > 1) {
+                    // Keep the recordedMessagesHistogram from TPCH results (index 1) over TPCC results (index 0)
+                    singleHistogram = results.get(1).combineHistograms(results.get(0));
                 }
 
-                r.writeAllCSVAbsoluteTiming(rs);
+                LOG.info(SINGLE_LINE);
+                if (!singleHistogram.getSuccessHistogram().isEmpty())
+                    LOG.info("Completed Transactions:\n" + singleHistogram.getSuccessHistogram() + "\n");
+
+                if (!singleHistogram.getAbortHistogram().isEmpty())
+                    LOG.info("Aborted Transactions:\n" + singleHistogram.getAbortHistogram() + "\n");
+
+                if (!singleHistogram.getRetryHistogram().isEmpty())
+                    LOG.info("Retried Transactions:\n" + singleHistogram.getRetryHistogram());
+
+                if (!singleHistogram.getErrorHistogram().isEmpty())
+                    LOG.info("Unexpected Errors:\n" + singleHistogram.getErrorHistogram());
+
+                if (!singleHistogram.getRecordedMessagesHistogram().isEmpty())
+                    LOG.info("Recorded exceptions:\n" + StringUtil.formatRecordedMessages(singleHistogram.getRecordedMessagesHistogram()));
             }
 
             ps.close();

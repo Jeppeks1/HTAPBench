@@ -389,17 +389,17 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
             results.txnErrors.putAll(txnTypes, 0);
 
             for (Worker w : workers) {
-                results.txnSuccess.putHistogram(w.getTransactionSuccessHistogram());
-                results.txnRetry.putHistogram(w.getTransactionRetryHistogram());
-                results.txnAborted.putHistogram(w.getTransactionAbortHistogram());
-                results.txnErrors.putHistogram(w.getTransactionErrorHistogram());
+                results.txnSuccess.putHistogram(w.getSuccessHistogram());
+                results.txnRetry.putHistogram(w.getRetryHistogram());
+                results.txnAborted.putHistogram(w.getAbortedHistogram());
+                results.txnErrors.putHistogram(w.getErrorHistogram());
 
                 if (w.getWorkloadConfiguration().getCalibrate()) {
                     if (w instanceof TPCCWorker)
                         results.setTsCounter(((TPCCWorker) w).getTs_conter().get());
                 }
 
-                for (Entry<TransactionType, Histogram<String>> e : w.getTransactionAbortMessageHistogram().entrySet()) {
+                for (Entry<TransactionType, Histogram<String>> e : w.getRecordedMessagesHistogram().entrySet()) {
                     Histogram<String> h = results.txnRecordedMessages.get(e.getKey());
                     if (h == null) {
                         h = new Histogram<String>(true);

@@ -179,23 +179,23 @@ public abstract class Worker implements Runnable {
         return (T) (this.class_procedures.get(procClass));
     }
 
-    public final Histogram<TransactionType> getTransactionSuccessHistogram() {
+    public final Histogram<TransactionType> getSuccessHistogram() {
         return (this.txnSuccess);
     }
 
-    public final Histogram<TransactionType> getTransactionRetryHistogram() {
+    public final Histogram<TransactionType> getRetryHistogram() {
         return (this.txnRetry);
     }
 
-    public final Histogram<TransactionType> getTransactionAbortHistogram() {
+    public final Histogram<TransactionType> getAbortedHistogram() {
         return (this.txnAborted);
     }
 
-    public final Histogram<TransactionType> getTransactionErrorHistogram() {
+    public final Histogram<TransactionType> getErrorHistogram() {
         return (this.txnErrors);
     }
 
-    public final Map<TransactionType, Histogram<String>> getTransactionAbortMessageHistogram() {
+    public final Map<TransactionType, Histogram<String>> getRecordedMessagesHistogram() {
         return (this.txnRecordedMessages);
     }
 
@@ -488,7 +488,7 @@ public abstract class Worker implements Runnable {
                 error_h = new Histogram<String>();
                 txnRecordedMessages.put(next, error_h);
             }
-            error_h.put(StringUtil.abbrv(ex.getMessage(), 20));
+            error_h.put(ex.getMessage());
         }
     }
 

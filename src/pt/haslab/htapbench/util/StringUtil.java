@@ -39,11 +39,9 @@
  */
 package pt.haslab.htapbench.util;
 
-import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import pt.haslab.htapbench.api.TransactionType;
+
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -63,6 +61,29 @@ public abstract class StringUtil {
         return (formatMaps(":", false, false, false, false, true, true, maps));
     }
 
+    public static String formatRecordedMessages(Map<TransactionType, Histogram<String>> map){
+        // Put the map in a TreeMap for easy sorting of keys
+        Map<TransactionType, Histogram<String>> treeMap = new TreeMap<TransactionType, Histogram<String>>(map);
+        StringBuilder s = new StringBuilder();
+
+        // The format should be "TransactionType [count] message"
+        String str = "%-20s [%4d] %s";
+
+        // Loop through the entries
+        for (TransactionType key : treeMap.keySet()){
+            Histogram<String> hist = treeMap.get(key);
+            for (String msg : hist.values()){
+                int count = hist.get(msg);
+
+                if (count > 0){
+                    s.append(String.format(str, key, count, StringUtil.abbrv(msg, 80)));
+                    s.append('\n');
+                }
+            }
+        }
+
+        return s.toString();
+    }
 
     /**
      * Return key/value maps into a nicely formatted table
@@ -246,7 +267,7 @@ public abstract class StringUtil {
     /**
      * Abbreviate the given string. The last three chars will be periods
      */
-    public static String abbrv(String str, int max) {
+    private static String abbrv(String str, int max) {
         return (abbrv(str, max, true));
     }
 
@@ -254,14 +275,15 @@ public abstract class StringUtil {
      * Abbreviate the given string. If dots, then the last three chars will be periods
      */
     private static String abbrv(String str, int max, boolean dots) {
-        int len = str.length();
+        String firstString = str.split("\n")[0];
+        int len = firstString.length();
         String ret;
         if (len > max) {
-            ret = (dots ? str.substring(0, max - 3) + "..." : str.substring(0, max));
+            ret = (dots ? firstString.substring(0, max - 3) + "..." : firstString.substring(0, max));
         } else {
-            ret = str;
+            ret = firstString;
         }
-        return (ret);
+        return ret;
     }
 
     /**
