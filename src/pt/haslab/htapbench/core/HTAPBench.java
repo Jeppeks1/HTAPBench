@@ -494,7 +494,7 @@ public class HTAPBench {
             wrkld.setFilesPath(generateFilesPath);
 
             // Use the command line to set the remaining configuration values
-            if (argsLine.hasOption("calibrate")){
+            if (isBooleanOptionSet(argsLine, "calibrate")){
                 wrkld.setCalibrate(true);
             }
 
