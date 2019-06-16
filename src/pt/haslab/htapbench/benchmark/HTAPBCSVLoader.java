@@ -69,7 +69,7 @@ public class HTAPBCSVLoader extends Loader {
     private Clock clock;
     private String fileLocation;
 
-    HTAPBCSVLoader(HTAPBenchmark benchmark, boolean calibrate, String outputPath, DensityConsultant density) {
+    HTAPBCSVLoader(HTAPBenchmark benchmark, boolean calibrate, String outputPath) {
         super(benchmark, null);
 
         numWarehouses = (int) Math.round(configWhseCount * this.scaleFactor);
@@ -79,7 +79,7 @@ public class HTAPBCSVLoader extends Loader {
 
         this.fileLocation = outputPath + '/';
         this.calibrate = calibrate;
-        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true, outputPath);
+        this.clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), true, outputPath);
         counter = new AtomicInteger();
     }
 

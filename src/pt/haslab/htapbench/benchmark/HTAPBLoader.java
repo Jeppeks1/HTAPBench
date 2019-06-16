@@ -78,7 +78,7 @@ public class HTAPBLoader extends Loader {
     private boolean outputFiles;
     private String fileLocation;
 
-    public HTAPBLoader(HTAPBenchmark benchmark, Connection c, boolean calibrate, boolean outputFiles, String outputPath, DensityConsultant density) {
+    public HTAPBLoader(HTAPBenchmark benchmark, Connection c, boolean calibrate, boolean outputFiles, String outputPath) {
         super(benchmark, c);
         numWarehouses = (int) Math.round(configWhseCount * this.scaleFactor);
         if (numWarehouses == 0) {
@@ -87,7 +87,7 @@ public class HTAPBLoader extends Loader {
         this.outputFiles = outputFiles;
         this.fileLocation = outputPath;
         this.calibrate = calibrate;
-        this.clock = new Clock(density.getDeltaTs(), (int) benchmark.getWorkloadConfiguration().getScaleFactor(), true, outputPath);
+        this.clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), true, outputPath);
         counter = new AtomicInteger();
     }
 

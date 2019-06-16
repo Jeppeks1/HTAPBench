@@ -69,7 +69,7 @@ public class RandomExecutor {
         
         long deltaTs = density.getDeltaTs();
         
-        Clock clock = new Clock(deltaTs,false, "./");
+        Clock clock = new Clock(deltaTs,3,false,"./");
         
         System.out.println("Clock: current TS "+clock.getCurrentTs());
 

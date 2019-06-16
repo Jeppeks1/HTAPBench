@@ -48,14 +48,11 @@ public class HTAPBenchmark extends BenchmarkModule {
     private static final Logger LOG = Logger.getLogger(HTAPBenchmark.class);
 
     private AtomicInteger ts_counter;
-    private DensityConsultant density;
     private boolean idealClient;
 
     public HTAPBenchmark(WorkloadConfiguration workConf) {
         super(workConf.getBenchmarkName(), workConf, true);
         ts_counter = new AtomicInteger();
-        int targetTPS = workConf.getTargetTPS();
-        this.density = new DensityConsultant(targetTPS);
         this.idealClient = workConf.getIdealClient();
     }
 
@@ -119,9 +116,9 @@ public class HTAPBenchmark extends BenchmarkModule {
     @Override
     protected Loader makeLoaderImpl(Connection conn, boolean calibrate, boolean generateFiles, String fileLocation) {
         if (conn == null && generateFiles) {
-            return new HTAPBCSVLoader(this, calibrate, fileLocation, this.density);
+            return new HTAPBCSVLoader(this, calibrate, fileLocation);
         } else {
-            return new HTAPBLoader(this, conn, calibrate, generateFiles, fileLocation, this.density);
+            return new HTAPBLoader(this, conn, calibrate, generateFiles, fileLocation);
         }
     }
 
