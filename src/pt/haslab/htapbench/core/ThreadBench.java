@@ -59,6 +59,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
     private final List<? extends Worker> workers;
     private WorkloadConfiguration workConf;
     private int intervalMonitor;
+    private int olapWorkers;
     private boolean isTPCC;
 
     private ThreadBench(List<? extends Worker> workers, WorkloadConfiguration workConf, int intervalMonitor) {
@@ -71,6 +72,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
         // TPCC workers are created in HTAPBench, meaning the workers parameter is non-empty.
         // If the workers list is non-empty, we have to check the class instance.
         isTPCC = !workers.isEmpty() && workers.get(0) instanceof TPCCWorker;
+        olapWorkers = isTPCC ? 0 : workers.size();
     }
 
     private void createWorkerThreads() {
@@ -80,6 +82,26 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
             thread.setUncaughtExceptionHandler(this);
             thread.start();
             this.workerThreads.add(thread);
+        }
+    }
+
+    /**
+     * Adds a new OLAP worker thread to the current list of workers and
+     * invokes the start method of the runnable if requested by the
+     * ClientBalancer.
+     */
+    private void checkAddOlapWorkerThread() {
+        // If the number of OLAP workers increase, then the ClientBalancer has requested
+        // that another instance be added to the workload.
+        if (!isTPCC && olapWorkers != workers.size()) {
+            // New workers are added to the end of the workers list
+            Worker olapWorker = workers.get(workers.size() - 1);
+            olapWorker.initializeState();
+            Thread thread = new Thread(olapWorker);
+            thread.setUncaughtExceptionHandler(this);
+            thread.start();
+            this.workerThreads.add(thread);
+            olapWorkers++;
         }
     }
 
@@ -219,9 +241,11 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
         // Main Loop
         boolean execute = true;
         while (execute) {
-            // posting new work... and reseting the queue in case we have new
-            // portion of the workload...
 
+            // Check if the ClientBalancer has requested another OLAP worker
+            checkAddOlapWorkerThread();
+
+            // Posting new work... and resetting the queue in case we have new portion of the workload...
             if (workState.getCurrentPhase() != null) {
                 rateFactor = workState.getCurrentPhase().rate / lowestRate;
             } else {
