@@ -64,10 +64,10 @@ public class RandomParameters {
     private static int second_max = 60;
 
 
-    private static List<String> nations = Arrays.asList("Australia", "Belgium", "Camaroon", "Denmark", "Ecuador", "France", "Germany", "Hungary", "Italy", "Japan", "Kenya", "Lithuania", "Mexico",
-            "Netherlands", "Oman", "Portugal", "Qatar", "Rwanda", "Serbia", "Togo", "United States", "Vietman", "Singapore", "Cambodia", "Yemen", "Zimbabwe",
-            "Argentina", "Bolivia", "Canada", "Dominican Republic", "Egypt", "Finnland", "Ghana", "Haiti", "India", "Jamaica", "kazahkstan", "Luxembourg", "Morocco",
-            "Norway", "Poland", "Peru", "Nicaragua", "Romania", "South Africa", "Thailand", "United Kingdom", "Venezuela", "Liechtenstei", "Austria", "Laos", "Zambia",
+    private static List<String> nations = Arrays.asList("Australia", "Belgium", "Cameroon", "Denmark", "Ecuador", "France", "Germany", "Hungary", "Italy", "Japan", "Kenya", "Lithuania", "Mexico",
+            "Netherlands", "Oman", "Portugal", "Qatar", "Rwanda", "Serbia", "Togo", "United States", "Vietnam", "Singapore", "Cambodia", "Yemen", "Zimbabwe",
+            "Argentina", "Bolivia", "Canada", "Dominican Republic", "Egypt", "Finland", "Ghana", "Haiti", "India", "Jamaica", "Kazakhstan", "Luxembourg", "Morocco",
+            "Norway", "Poland", "Peru", "Nicaragua", "Romania", "South Africa", "Thailand", "United Kingdom", "Venezuela", "Liechtenstein", "Austria", "Laos", "Zambia",
             "Switzerland", "China", "Papua New Guinea", "East Timor", "Bulgaria", "Brazil", "Albania", "Andorra", "Belize", "Botswana");
     private static List<String> regions = Arrays.asList("Africa", "America", "Asia", "Australia", "Europe");
     private static List<Character> alphabet = Arrays.asList('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
