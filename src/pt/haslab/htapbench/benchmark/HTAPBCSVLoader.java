@@ -689,7 +689,6 @@ public class HTAPBCSVLoader extends Loader {
 
                                 LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + total);
                                 lastTimeMS = tmpTime;
-                                outOrder.close();
                             }
                         } // end for [l]
                     } // end for [c]
