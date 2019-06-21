@@ -19,10 +19,9 @@ package pt.haslab.htapbench.core;
 
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
+import pt.haslab.htapbench.util.FileUtil;
 
 /**
  * This class sets up the Clock considering the deltaTs found in density class.
@@ -32,52 +31,36 @@ import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
  */
 public class Clock {
 
+    private final long tpch_start_date = Timestamp.valueOf("1992-01-01 00:00:00").getTime();
+    private final long tpch_end_date = Timestamp.valueOf("1998-12-31 23:59:59").getTime();
     private AtomicLong clock;
-    private long deltaTs;
     private int warehouses;
+    private long deltaTs;
     private long startTime;
     private long populateStartTs;
 
-    private final int tpch_populate_slots = 2555;
-    //TPC-H start date for equivalence: 1992-01-01 00:00:00
-    //private final long tpch_start_date = 694224000000l;
-    private final long tpch_start_date;
-
-    public Clock(long deltaTS, boolean populate) {
+    /**
+     * Clock constructor for the population and execution phases.
+     */
+    public Clock(long deltaTS, int warehouses, boolean populate, String filePath) {
         this.deltaTs = deltaTS;
-        Timestamp tpch_start = new Timestamp(1992,1,1,0,0,0,0);
-        this.tpch_start_date = tpch_start.getTime();
-        
-        if (populate) {
-            this.startTime = System.currentTimeMillis();
-            this.populateStartTs = getFinalPopulatedTs();
-        } else {
-            this.startTime = AuxiliarFileHandler.importLastTs("./");
-            this.populateStartTs = AuxiliarFileHandler.importFirstTs("./");
-        }
-        this.clock = new AtomicLong(startTime);
-        this.warehouses = 0;
-    }
+        this.warehouses = warehouses;
 
-    public Clock(long deltaTS, int warehouses, boolean populate) {
-        this.deltaTs = deltaTS;
-        Timestamp tpch_start = new Timestamp(1992,1,1,0,0,0,0);
-        this.tpch_start_date = tpch_start.getTime();
+        FileUtil.makeDirIfNotExists(filePath);
+
         if (populate) {
             this.startTime = System.currentTimeMillis();
             this.populateStartTs = startTime;
         } else {
-            this.startTime = AuxiliarFileHandler.importLastTs("./");
-            this.populateStartTs = AuxiliarFileHandler.importFirstTs("./");
+            this.startTime = AuxiliarFileHandler.importLastTs(filePath);
+            this.populateStartTs = AuxiliarFileHandler.importFirstTs(filePath);
         }
+
         this.clock = new AtomicLong(startTime);
-        this.warehouses = warehouses;
     }
 
     /**
      * Increments the global clock and returns the new timestamp.
-     *
-     * @return
      */
     public long tick() {
         return clock.addAndGet(deltaTs);
@@ -85,8 +68,6 @@ public class Clock {
 
     /**
      * Returns the current value of the global clock.
-     *
-     * @return
      */
     public long getCurrentTs() {
         return clock.get();
@@ -94,8 +75,6 @@ public class Clock {
 
     /**
      * Returns the first generated Timestamp.
-     *
-     * @return
      */
     public long getStartTimestamp() {
         return this.startTime;
@@ -103,8 +82,6 @@ public class Clock {
 
     /**
      * Computes and returns the last populated TS.
-     *
-     * @return
      */
     public long getFinalPopulatedTs() {
         long TSnumber = warehouses * HTAPBConstants.configDistPerWhse * HTAPBConstants.configCustPerDist * 2;
@@ -122,40 +99,20 @@ public class Clock {
         //number of timestamps;
         long tss = this.startTime - this.populateStartTs;
         //number of ts in each slot;
-        long step = tss / this.tpch_populate_slots;
-        
-        long diff = ts - tpch_start_date;
+        int tpch_populate_slots = 2555;
+        long step = tss / tpch_populate_slots;
 
-        int diff_days = (int)((ts - tpch_start_date) / (24 * 60 * 60 * 1000));
+        int diff_days = (int) ((ts - tpch_start_date) / (24 * 60 * 60 * 1000));
 
         return this.populateStartTs + diff_days * step;
     }
 
     /**
-     * Computes Timestamp + days.
-     *
-     * @param ts
-     * @param days
-     * @return
-     */
-    public long computeTsPlusXDays(long ts, int days) {
-        long daysInLong = days * 24 * 60 * 60 * 1000;
-        return ts + daysInLong;
-    }
-    
-    /**
      * Computes Timestamp - days.
-     * @param ts
-     * @param days
-     * @return 
      */
     public long computeTsMinusXDays(long ts, int days) {
         long daysInLong = days * 24 * 60 * 60 * 1000;
         return ts - daysInLong;
-    }
-
-    public long getPopulateStartTs() {
-        return this.tpch_start_date;
     }
 
 }

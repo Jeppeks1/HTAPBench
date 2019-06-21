@@ -37,29 +37,26 @@ import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 
 import java.util.List;
 
-public class OLTPWorkerThread implements Runnable{
-    
-    List<Worker> workers;
-    List<WorkloadConfiguration> workConfs;
-    int intervalMonitor;
-    boolean calibrate;
-    Results results;
-    private Clock clock;
+public class OLTPWorkerThread implements Runnable {
 
-    public OLTPWorkerThread(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate){
-        this.workers=workers;
-        this.workConfs=workConfs;
-        this.intervalMonitor=intervalMonitoring;
-        this.calibrate=calibrate;
+    private WorkloadConfiguration workConf;
+    private List<Worker> workers;
+    private Results results;
+
+    private int intervalMonitor;
+
+    OLTPWorkerThread(List<Worker> workers, WorkloadConfiguration workConf) {
+        this.intervalMonitor = workConf.getIntervalMonitor();
+        this.workConf = workConf;
+        this.workers = workers;
     }
-    
+
     @Override
     public void run() {
-        results = ThreadBench.runRateLimitedOLTP(workers, workConfs, intervalMonitor, calibrate);
+        results = ThreadBench.runThreadBench(workers, workConf, intervalMonitor);
     }
-    
-    public Results getResults(){
+
+    public Results getResults() {
         return results;
     }
-    
 }

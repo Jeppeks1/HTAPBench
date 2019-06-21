@@ -40,36 +40,37 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
 public class Q12 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(Clock clock){  
+
+    private SQLStmt buildQueryStmt(Clock clock){
         int year = RandomParameters.randBetween(1993, 1997);
-        long date1 = RandomParameters.convertDatetoLong(year, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, 1, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+
+        long date1 = RandomParameters.convertDateToLong(year, 1, 1);
+        long date2 = RandomParameters.convertDateToLong(year + 1, 1, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
-        
+
         String query = "SELECT o_ol_cnt, "
-            +        "sum(CASE WHEN o_carrier_id = 1 "
-            +            "OR o_carrier_id = 2 THEN 1 ELSE 0 END) AS high_line_count, "
-            +        "sum(CASE WHEN o_carrier_id <> 1 "
-            +            "AND o_carrier_id <> 2 THEN 1 ELSE 0 END) AS low_line_count "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_ORDER + ", "
-            + HTAPBConstants.TABLENAME_ORDERLINE
-            + " WHERE ol_w_id = o_w_id "
-            +   "AND ol_d_id = o_d_id "
-            +   "AND ol_o_id = o_id "
-            +   "AND o_entry_d <= ol_delivery_d "
-            +   "AND ol_delivery_d >= '"+ts1.toString()+"' "
-            +   "AND ol_delivery_d < '"+ts2.toString()+"' "
-            + "GROUP BY o_ol_cnt "
-            + "ORDER BY o_ol_cnt";
+                +        "sum(CASE WHEN o_carrier_id = 1 "
+                +            "OR o_carrier_id = 2 THEN 1 ELSE 0 END) AS high_line_count, "
+                +        "sum(CASE WHEN o_carrier_id <> 1 "
+                +            "AND o_carrier_id <> 2 THEN 1 ELSE 0 END) AS low_line_count "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_ORDER + ", "
+                + HTAPBConstants.TABLENAME_ORDERLINE
+                + " WHERE ol_w_id = o_w_id "
+                +   "AND ol_d_id = o_d_id "
+                +   "AND ol_o_id = o_id "
+                +   "AND o_entry_d <= ol_delivery_d "
+                +   "AND ol_delivery_d >= '"+ts1.toString()+"' "
+                +   "AND ol_delivery_d < '"+ts2.toString()+"' "
+                + "GROUP BY o_ol_cnt "
+                + "ORDER BY o_ol_cnt";
         return new SQLStmt(query);
     }
-	
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
 }

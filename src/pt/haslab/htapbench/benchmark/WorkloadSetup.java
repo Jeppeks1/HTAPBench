@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -32,90 +32,73 @@
  */
 package pt.haslab.htapbench.benchmark;
 
-import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import java.util.List;
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 
 /**
- * This class computes the correct number of warehouses (#wh) and terminals (#terminals) according to the desired target TPS.
- * To perform this computation, the ideal TPC-C client is considered
+ * This class computes the correct number of warehouses (#wh) and terminals (#terminals) according
+ * to the desired target TPS. To perform this computation, the ideal TPC-C client is considered.
  */
 public class WorkloadSetup {
-    
-    private XMLConfiguration xmlConfig = null;
+
+    private XMLConfiguration xmlConfig;
     private int targetTPS;
     private int warehouses;
     private int terminals;
-    
-    //value defined in the TPC-C specification [pag. 61 - clause 4.2]
+
+    // Value defined in the TPC-C specification [pag. 61 - clause 4.2]
     private static final double max_tmpC = HTAPBConstants.max_tmpC;
-    
-    public WorkloadSetup(XMLConfiguration xmlConfig){
+
+    public WorkloadSetup(XMLConfiguration xmlConfig) {
         this.xmlConfig = xmlConfig;
         this.targetTPS = xmlConfig.getInt("target_TPS");
     }
-    
+
     /**
      * Computes the workload configuration: #warehouses and #terminals according to the target TPS.
      */
     public void computeWorkloadSetup() {
-        //convert from txn per second to txn per minute.
-        int tpm = targetTPS*60;
-        //exract the new order txn weight.
+        // Convert from txn per second to txn per minute and extract the newOrder weight.
+        int tpm = targetTPS * 60;
         double newOrder_weight = get_NewOrder_WeightFromXMLConf();
-        //double newOrder_weight = 0.45;
-        //if(newOrder_weight == 0){
-        //    throw new HTAPBException("New Order weight must be non-null. Expected value between 1 and 100: Specification: 45. Cannot Continue");
-        //}
-        //compute the target tmpC for the TPS chosen.
-        int target_tpmC = (int)Math.round(tpm *  newOrder_weight);
-        //compute the # of ideal warehouses:
+        int target_tpmC = (int) Math.round(tpm * newOrder_weight);
+
+        // Compute the number of terminals and warehouses according to an ideal client
         this.terminals = (int) Math.ceil(target_tpmC / max_tmpC);
-        //this.terminals = 1;
-        //compute the # of ideal terminals:
-        this.warehouses = (int)Math.ceil(this.terminals / 10.0);
-        //this.warehouses=1;
+        this.warehouses = (int) Math.ceil(this.terminals / 10.0);
     }
-    
+
     /**
      * Returns the number of computed warehouses.
-     * @return 
      */
-    public int getWarehouses(){
+    public int getWarehouses() {
         return this.warehouses;
     }
-    
-    public void setWarehouses(int warehouses){
-        this.warehouses=warehouses;
+
+    public void setWarehouses(int warehouses) {
+        this.warehouses = warehouses;
     }
-    
+
     /**
      * Returns the number of computer Terminals.
-     * @return 
      */
-    public int getTerminals(){
+    public int getTerminals() {
         return this.terminals;
     }
-    
+
     /**
      * Returns the TargetTPS set through the xml configuration.
-     * @return 
      */
-    public int getTargetTPS(){
+    public int getTargetTPS() {
         return this.targetTPS;
     }
-    
+
     /**
      * Extracts the weights from the xmlConfig file whenever we want to use a different transaction mixed from the standard TPC-C specification.
-     * @return 
      */
-    private double get_NewOrder_WeightFromXMLConf(){
+    private double get_NewOrder_WeightFromXMLConf() {
         SubnodeConfiguration work = xmlConfig.configurationAt("works/work[" + 1 + "]");
-        List<String> weight_strings;
         String weightKey = work.getString("weights").toLowerCase();
-                
-        return Double.parseDouble("0."+weightKey);
+        return Double.parseDouble("0." + weightKey);
     }
-    
 }

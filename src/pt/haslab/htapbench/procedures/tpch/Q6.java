@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -37,29 +37,33 @@ import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
+
 import java.sql.Timestamp;
 
 public class Q6 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(Clock clock){  
-        String q1 = ""+RandomParameters.randBetween(1, 100000);
-        String q2 = ""+RandomParameters.randBetween(1, 100000);
+
+    private SQLStmt buildQueryStmt(Clock clock) {
+        String q1 = "" + RandomParameters.randBetween(1, 100000);
+        String q2 = "" + RandomParameters.randBetween(1, 100000);
+
         int year = RandomParameters.randBetween(1993, 1997);
-        long date1 = RandomParameters.convertDatetoLong(year, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, 1, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+
+        long date1 = RandomParameters.convertDateToLong(year, 1, 1);
+        long date2 = RandomParameters.convertDateToLong(year + 1, 1, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
+
         String query = "SELECT sum(ol_amount) AS revenue "
-            + "FROM  "+HTAPBConstants.TABLENAME_ORDERLINE
-            + " WHERE ol_delivery_d >= '"+ts1+"' "
-            +   "AND ol_delivery_d < '"+ts2+"' "
-            +   "AND ol_quantity BETWEEN "+q1+" AND "+q2;
+                + "FROM  " + HTAPBConstants.TABLENAME_ORDERLINE
+                + " WHERE ol_delivery_d >= '" + ts1 + "' "
+                + "AND ol_delivery_d < '" + ts2 + "' "
+                + "AND ol_quantity BETWEEN " + q1 + " AND " + q2;
         return new SQLStmt(query);
     }
-	
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
 }

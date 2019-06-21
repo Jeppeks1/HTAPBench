@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -34,18 +34,16 @@ package pt.haslab.htapbench.types;
 import java.util.*;
 
 /**
- *
+ * SortDirectionType
  */
 public enum SortDirectionType {
-    INVALID      (0),
-    ASC          (1),
-    DESC         (2);
+    INVALID(0),
+    ASC(1),
+    DESC(2);
 
     SortDirectionType(int val) {
         assert (this.ordinal() == val) :
-            "Enum element " + this.name() +
-            " in position " + this.ordinal() +
-            " instead of position " + val;
+                "Enum element " + this.name() + " in position " + this.ordinal() + " instead of position " + val;
     }
 
     public int getValue() {
@@ -54,6 +52,7 @@ public enum SortDirectionType {
 
     protected static final Map<Integer, SortDirectionType> idx_lookup = new HashMap<Integer, SortDirectionType>();
     protected static final Map<String, SortDirectionType> name_lookup = new HashMap<String, SortDirectionType>();
+
     static {
         for (SortDirectionType vt : EnumSet.allOf(SortDirectionType.class)) {
             SortDirectionType.idx_lookup.put(vt.ordinal(), vt);
@@ -61,16 +60,8 @@ public enum SortDirectionType {
         }
     }
 
-    public static Map<Integer, SortDirectionType> getIndexMap() {
-        return idx_lookup;
-    }
-
-    public static Map<String, SortDirectionType> getNameMap() {
-        return name_lookup;
-    }
-
     public static SortDirectionType get(Integer idx) {
-        assert(idx >= 0);
+        assert (idx >= 0);
         SortDirectionType ret = SortDirectionType.idx_lookup.get(idx);
         return (ret == null ? SortDirectionType.INVALID : ret);
     }

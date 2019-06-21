@@ -38,44 +38,39 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
-public class Q16 extends GenericQuery {    
-    
-    private SQLStmt buildQueryStmt(){  
+public class Q16 extends GenericQuery {
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
+
         String st1 = random.generateRandomCharacter();
         String st2 = random.generateRandomCharacter();
-        String data = st1+st2+"%";
-        String su_comment = "%"+random.getRandomSuComment()+"%";
-        
-        
+
+        String data = st1 + st2 + "%";
+        String su_comment = "%" + random.getRandomSuComment() + "%";
+
         String query = "SELECT i_name, "
-            +        "substring(i_data from  1 for 3) AS brand, "
-            +        "i_price, "
-            +        "count(DISTINCT (mod((s_w_id * s_i_id),10000))) AS supplier_cnt "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_STOCK + ", "
-            + HTAPBConstants.TABLENAME_ITEM
-            + " WHERE i_id = s_i_id "
-            +   "AND i_data NOT LIKE '"+data+"' "
-            +   "AND (mod((s_w_id * s_i_id),10000) NOT IN "
-            +     "(SELECT su_suppkey "
-            +      "FROM "+HTAPBConstants.TABLENAME_SUPPLIER
-            +      " WHERE su_comment LIKE '"+su_comment+"')) "
-            + "GROUP BY i_name, "
-            +          "brand, "
-            +          "i_price "
-            + "ORDER BY supplier_cnt DESC";
+                +        "substring(i_data from  1 for 3) AS brand, "
+                +        "i_price, "
+                +        "count(DISTINCT (mod((s_w_id * s_i_id),10000))) AS supplier_cnt "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_STOCK + ", "
+                + HTAPBConstants.TABLENAME_ITEM
+                + " WHERE i_id = s_i_id "
+                +   "AND i_data NOT LIKE '"+data+"' "
+                +   "AND (mod((s_w_id * s_i_id),10000) NOT IN "
+                +     "(SELECT su_suppkey "
+                +      "FROM "+HTAPBConstants.TABLENAME_SUPPLIER
+                +      " WHERE su_comment LIKE '"+su_comment+"')) "
+                + "GROUP BY i_name, "
+                +          "brand, "
+                +          "i_price "
+                + "ORDER BY supplier_cnt DESC";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

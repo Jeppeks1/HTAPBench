@@ -39,39 +39,41 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q9 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
+
         String st1 = random.generateRandomCharacter();
         String st2 = random.generateRandomCharacter();
-        String data=st1.toUpperCase()+st2.toUpperCase();
-        data = "%"+data;
-        
+
+        String data = st1.toUpperCase() + st2.toUpperCase();
+        data = "%" + data;
+
         String query = "SELECT n_name, "
-            +        "sum(ol_amount) AS sum_profit "
-            + "FROM "
-            +  HTAPBConstants.TABLENAME_ITEM + ", "
-            +  HTAPBConstants.TABLENAME_STOCK + ", "
-            +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            +  HTAPBConstants.TABLENAME_ORDERLINE + ", "
-            +  HTAPBConstants.TABLENAME_ORDER +  ", "
-            +  HTAPBConstants.TABLENAME_NATION
-            + " WHERE ol_i_id = s_i_id "
-            +   "AND ol_supply_w_id = s_w_id "
-            +   "AND ol_w_id = o_w_id "
-            +   "AND ol_d_id = o_d_id "
-            +   "AND ol_o_id = o_id "
-            +   "AND ol_i_id = i_id "
-            +   "AND su_nationkey = n_nationkey "
-            +   "AND i_data LIKE '"+data+"' "
-            + "GROUP BY n_name "
-            + "ORDER BY n_name "
+                +      "sum(ol_amount) AS sum_profit "
+                + "FROM "
+                +  HTAPBConstants.TABLENAME_ITEM + ", "
+                +  HTAPBConstants.TABLENAME_STOCK + ", "
+                +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +  HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +  HTAPBConstants.TABLENAME_ORDER +  ", "
+                +  HTAPBConstants.TABLENAME_NATION
+                + " WHERE ol_i_id = s_i_id "
+                +   "AND ol_supply_w_id = s_w_id "
+                +   "AND ol_w_id = o_w_id "
+                +   "AND ol_d_id = o_d_id "
+                +   "AND ol_o_id = o_id "
+                +   "AND ol_i_id = i_id "
+                +   "AND su_nationkey = n_nationkey "
+                +   "AND i_data LIKE '" + data + "' "
+                + "GROUP BY n_name "
+                + "ORDER BY n_name "
                 + "DESC";
         return new SQLStmt(query);
     }
-	
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

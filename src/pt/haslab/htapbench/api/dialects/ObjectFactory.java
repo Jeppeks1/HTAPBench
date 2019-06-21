@@ -53,7 +53,7 @@ import javax.xml.namespace.QName;
  * 
  */
 @XmlRegistry
-public class ObjectFactory {
+class ObjectFactory {
 
     private final static QName _Dialects_QNAME = new QName("", "dialects");
 
@@ -61,14 +61,14 @@ public class ObjectFactory {
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: com.oltpbenchmark.api.dialects
      * 
      */
-    public ObjectFactory() {
+    ObjectFactory() {
     }
 
     /**
      * Create an instance of {@link DialectType }
      * 
      */
-    public DialectType createDialectType() {
+    DialectType createDialectType() {
         return new DialectType();
     }
 
@@ -76,7 +76,7 @@ public class ObjectFactory {
      * Create an instance of {@link StatementType }
      * 
      */
-    public StatementType createStatementType() {
+    StatementType createStatementType() {
         return new StatementType();
     }
 
@@ -84,7 +84,7 @@ public class ObjectFactory {
      * Create an instance of {@link ProcedureType }
      * 
      */
-    public ProcedureType createProcedureType() {
+    ProcedureType createProcedureType() {
         return new ProcedureType();
     }
 
@@ -92,7 +92,7 @@ public class ObjectFactory {
      * Create an instance of {@link DialectsType }
      * 
      */
-    public DialectsType createDialectsType() {
+    DialectsType createDialectsType() {
         return new DialectsType();
     }
 
@@ -101,7 +101,7 @@ public class ObjectFactory {
      * 
      */
     @XmlElementDecl(namespace = "", name = "dialects")
-    public JAXBElement<DialectsType> createDialects(DialectsType value) {
+    JAXBElement<DialectsType> createDialects(DialectsType value) {
         return new JAXBElement<DialectsType>(_Dialects_QNAME, DialectsType.class, null, value);
     }
 

@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -37,116 +37,114 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.commons.collections15.map.ListOrderedMap;
 
-
 public class TransactionTypes implements Collection<TransactionType> {
-	
-	private final ListOrderedMap<String, TransactionType> types = new ListOrderedMap<String, TransactionType>();
-	
-	protected TransactionTypes() {
-	}
-	
-	public TransactionTypes(List<TransactionType> transactiontypes) {
-		Collections.sort(transactiontypes, new Comparator<TransactionType>() {
-			@Override
-			public int compare(TransactionType o1, TransactionType o2) {
-				return o1.compareTo(o2);
-			}
-		});
-		for (TransactionType tt : transactiontypes) {
-		    // System.err.println("Adding " + tt + " - " + this.types + " / " + transactiontypes);
-		    String key = tt.getName().toUpperCase();
-		    assert(this.types.containsKey(key) == false) :
-		        "Duplicate TransactionType '" + tt + "'\n" + this.types;
-			this.types.put(key, tt);
-		} // FOR
-	}
 
-	public TransactionType getType(String procName) {
-	    return (this.types.get(procName.toUpperCase()));
-	}
-	
-	public TransactionType getType(Class<? extends Procedure> procClass) {
-		return (this.getType(procClass.getSimpleName()));
-	}
+    private final ListOrderedMap<String, TransactionType> types = new ListOrderedMap<String, TransactionType>();
 
-	public TransactionType getType(int id) {
-		return (this.types.getValue(id));
-	}
-	
-	@Override
-	public String toString() {
-		return this.types.values().toString();
-	}
+    public TransactionTypes(List<TransactionType> transactiontypes) {
+        Collections.sort(transactiontypes, new Comparator<TransactionType>() {
+            @Override
+            public int compare(TransactionType o1, TransactionType o2) {
+                return o1.compareTo(o2);
+            }
+        });
 
-	@Override
-	public boolean add(TransactionType tt) {
-	    String key = tt.getName().toUpperCase();
-	    this.types.put(key, tt);
-		return (true);
-	}
+        // Loop over each TransactionType
+        for (TransactionType tt : transactiontypes) {
+            // System.err.println("Adding " + tt + " - " + this.types + " / " + transactiontypes);
+            String key = tt.getName().toUpperCase();
+            assert (!this.types.containsKey(key)) : "Duplicate TransactionType '" + tt + "'\n" + this.types;
 
-	@Override
-	public boolean addAll(Collection<? extends TransactionType> c) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+            this.types.put(key, tt);
+        }
+    }
 
-	@Override
-	public void clear() {
-		this.types.clear();
-	}
+    public TransactionType getType(String procName) {
+        return (this.types.get(procName.toUpperCase()));
+    }
 
-	@Override
-	public boolean contains(Object o) {
-		return false;
-	}
+    public TransactionType getType(Class<? extends Procedure> procClass) {
+        return (this.getType(procClass.getSimpleName()));
+    }
 
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		return (this.types.values().containsAll(c));
-	}
+    public TransactionType getType(int id) {
+        return (this.types.getValue(id));
+    }
 
-	@Override
-	public boolean isEmpty() {
-		return (this.types.isEmpty());
-	}
+    @Override
+    public String toString() {
+        return this.types.values().toString();
+    }
 
-	@Override
-	public Iterator<TransactionType> iterator() {
-		return (this.types.values().iterator());
-	}
+    @Override
+    public boolean add(TransactionType tt) {
+        String key = tt.getName().toUpperCase();
+        this.types.put(key, tt);
+        return (true);
+    }
 
-	@Override
-	public boolean remove(Object o) {
+    @Override
+    public boolean addAll(Collection<? extends TransactionType> c) {
+        return false;
+    }
 
-		return false;
-	}
+    @Override
+    public void clear() {
+        this.types.clear();
+    }
 
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		return false;
-	}
+    @Override
+    public boolean contains(Object o) {
+        return false;
+    }
 
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		return false;
-	}
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return (this.types.values().containsAll(c));
+    }
 
-	@Override
-	public int size() {
-		return (this.types.size());
-	}
+    @Override
+    public boolean isEmpty() {
+        return (this.types.isEmpty());
+    }
 
-	@Override
-	public Object[] toArray() {
-		return (this.types.values().toArray());
-	}
+    @Override
+    public Iterator<TransactionType> iterator() {
+        return (this.types.values().iterator());
+    }
 
-	@Override
-	public <T> T[] toArray(T[] a) {
-		return (this.types.values().toArray(a));
-	}
-	
+    @Override
+    public boolean remove(Object o) {
+
+        return false;
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public int size() {
+        return (this.types.size());
+    }
+
+    @Override
+    public Object[] toArray() {
+        return (this.types.values().toArray());
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return (this.types.values().toArray(a));
+    }
+
 }

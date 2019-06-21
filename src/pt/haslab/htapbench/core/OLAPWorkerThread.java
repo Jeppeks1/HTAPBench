@@ -39,35 +39,33 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class OLAPWorkerThread implements Runnable{
-    
-    List<Worker> workers;
-    List<WorkloadConfiguration> workConfs;
-    int intervalMonitor;
-    boolean calibrate;
-    Results results;
+public class OLAPWorkerThread implements Runnable {
 
-    public OLAPWorkerThread(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate){
-        this.workers=workers;
-        this.workConfs=workConfs;
-        String connection = this.workConfs.get(0).getDBConnection();
-        this.workConfs.get(0).setDBConnection(connection);
-        this.intervalMonitor=intervalMonitoring;
-        this.calibrate=calibrate;
+    private WorkloadConfiguration workConf;
+    private List<Worker> workers;
+    private Results results;
+
+    private int intervalMonitor;
+
+    OLAPWorkerThread(List<Worker> workers, WorkloadConfiguration workConf) {
+        this.intervalMonitor = workConf.getIntervalMonitor();
+        this.workConf = workConf;
+        this.workers = workers;
     }
-    
+
     @Override
     public void run() {
         try {
-            Thread.sleep(2*60*1000);
-            results = ThreadBench.runOLAP(workers, workConfs, intervalMonitor, calibrate);
+            // The first few minutes should consist of only OLTP workload
+            Thread.sleep(2 * 60 * 1000);
+            results = ThreadBench.runThreadBench(workers, workConf, intervalMonitor);
         } catch (InterruptedException ex) {
             Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    public Results getResults(){
+
+    public Results getResults() {
         return results;
     }
-    
+
 }

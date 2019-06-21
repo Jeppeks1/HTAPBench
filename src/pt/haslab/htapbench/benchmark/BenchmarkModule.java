@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -63,7 +63,7 @@ import pt.haslab.htapbench.util.ScriptRunner;
 public abstract class BenchmarkModule {
     private static final Logger LOG = Logger.getLogger(BenchmarkModule.class);
 
-    protected final String benchmarkName;
+    private final String benchmarkName;
 
     /**
      * The workload configuration for this benchmark invocation
@@ -86,17 +86,13 @@ public abstract class BenchmarkModule {
     private final Set<Class<? extends Procedure>> supplementalProcedures = new HashSet<Class<? extends Procedure>>();
 
     /**
-     * The last Connection that was created using this BenchmarkModule
-     */
-    private Connection last_connection;
-
-    /**
      * A single Random object that should be re-used by all a benchmark's components
      */
     private final Random rng = new Random();
 
     /**
      * Whether to use verbose output messages
+     *
      * @deprecated
      */
     protected boolean verbose;
@@ -111,59 +107,41 @@ public abstract class BenchmarkModule {
         this.dialects = new StatementDialects(this.workConf.getDBType(), xmlFile);
     }
 
-    // --------------------------------------------------------------------------
-    // DATABASE CONNETION
-    // --------------------------------------------------------------------------
+    // -------------------------------------------------------------------
+    //                         Database connection
+    // -------------------------------------------------------------------
 
-    /**
-     * 
-     * @return
-     * @throws SQLException
-     */
     public final Connection makeConnection() throws SQLException {
         Connection conn = DriverManager.getConnection(workConf.getDBConnection(),
-        workConf.getDBUsername(),
-        workConf.getDBPassword());
+                workConf.getDBUsername(),
+                workConf.getDBPassword());
         Catalog.setSeparator(conn);
-        this.last_connection = conn;
         return (conn);
     }
 
-    /**
-     * Return the last Connection handle created by this BenchmarkModule
-     * @return
-     */
-    protected final Connection getLastConnection() {
-        return (this.last_connection);
-    }
+    // -------------------------------------------------------------------
+    //                     Implementing class interface
+    // -------------------------------------------------------------------
 
-    // --------------------------------------------------------------------------
-    // IMPLEMENTING CLASS INTERFACE
-    // --------------------------------------------------------------------------
-    protected abstract List<Worker> makeWorkersImpl(boolean verbose, String workerType, Clock clock) throws IOException;
+    protected abstract List<Worker> makeWorkersImpl(String workerType, Clock clock) throws IOException;
 
-    protected abstract List<Worker> makeOLAPWorkerImpl(boolean verbose, Clock clock) throws IOException;
+    protected abstract List<Worker> makeOLAPWorkerImpl(Clock clock) throws IOException;
+
     /**
      * Each BenchmarkModule needs to implement this method to load a sample
      * dataset into the database. The Connection handle will already be
      * configured for you, and the base class will commit+close it once this
      * method returns
-     * 
-     * @param conn
-     *            TODO
-     * @return TODO
-     * @throws SQLException
-     *             TODO
      */
-    protected abstract Loader makeLoaderImpl(Connection conn, boolean calibrate, boolean generateFiles, String filePath) throws SQLException;
+    protected abstract Loader makeLoaderImpl(Connection conn) throws SQLException;
 
     protected abstract Package getProcedurePackageImpl();
-    
+
     protected abstract Package getProcedurePackageImpl(String txnName);
 
-    // --------------------------------------------------------------------------
-    // PUBLIC INTERFACE
-    // --------------------------------------------------------------------------
+    // -------------------------------------------------------------------
+    //                         Public interface
+    // -------------------------------------------------------------------
 
     /**
      * Return the Random generator that should be used by all this benchmark's components
@@ -173,17 +151,7 @@ public abstract class BenchmarkModule {
     }
 
     /**
-     * 
-     * @return
-     */
-    public URL getDatabaseDDL() {
-        return (this.getDatabaseDDL(this.workConf.getDBType()));
-    }
-
-    /**
-     * Return the URL handle to the DDL used to load the benchmark's database
-     * schema.
-     * @throws SQLException
+     * Return the URL handle to the DDL used to load the benchmark's database schema.
      */
     public URL getDatabaseDDL(DatabaseType db_type) {
         String ddlNames[] = {
@@ -195,18 +163,18 @@ public abstract class BenchmarkModule {
             if (ddlName == null) continue;
             URL ddlURL = this.getClass().getResource(ddlName);
             if (ddlURL != null) return ddlURL;
-        } // FOR
-        LOG.trace(ddlNames[0]+" :or: "+ddlNames[1]);
+        }
+
+        LOG.trace(ddlNames[0] + " :or: " + ddlNames[1]);
         LOG.error("Failed to find DDL file for " + this.benchmarkName);
+
         return null;
     }
 
     /**
-     * Return the File handle to the SQL Dialect XML file
-     * used for this benchmark 
-     * @return
+     * Return the File handle to the SQL Dialect XML file used for this benchmark
      */
-    public File getSQLDialect() {
+    private File getSQLDialect() {
         String xmlName = this.benchmarkName + "-dialects.xml";
         URL ddlURL = this.getClass().getResource(xmlName);
         if (ddlURL != null) return new File(ddlURL.getPath());
@@ -217,29 +185,21 @@ public abstract class BenchmarkModule {
 
     /**
      * Calls the implementation for making all the OLTP Workers.
-     * @param verbose
-     * @param workerType
-     * @return
-     * @throws IOException 
      */
-    public final List<Worker> makeWorkers(boolean verbose,String workerType,Clock clock) throws IOException {
-        return (this.makeWorkersImpl(verbose,workerType,clock));
-    }
-    
-    /**
-     * Calls the implementation for making a OLAP Worker.
-     * @param verbose
-     * @return
-     * @throws IOException 
-     */
-    public final List<Worker> makeOLAPWorker(boolean verbose,Clock clock) throws IOException {
-        return (this.makeOLAPWorkerImpl(verbose,clock));
+    public final List<Worker> makeWorkers(String workerType, Clock clock) throws IOException {
+        return (this.makeWorkersImpl(workerType, clock));
     }
 
     /**
-     * Create the Benchmark Database
-     * This is the main method used to create all the database 
-     * objects (e.g., table, indexes, etc) needed for this benchmark 
+     * Calls the implementation for making a OLAP Worker.
+     */
+    public final List<Worker> makeOLAPWorker(Clock clock) throws IOException {
+        return (this.makeOLAPWorkerImpl(clock));
+    }
+
+    /**
+     * Create the Benchmark Database. This is the main method used to create all
+     * the database objects (e.g., table, indexes, etc) needed for this benchmark.
      */
     public final void createDatabase() {
         try {
@@ -252,14 +212,13 @@ public abstract class BenchmarkModule {
     }
 
     /**
-     * Create the Benchmark Database
-     * This is the main method used to create all the database 
-     * objects (e.g., table, indexes, etc) needed for this benchmark 
+     * Create the Benchmark Database. This is the main method used to create all
+     * the database objects (e.g., table, indexes, etc) needed for this benchmark.
      */
-    public final void createDatabase(DatabaseType dbType, Connection conn) throws SQLException {
+    public final void createDatabase(DatabaseType dbType, Connection conn) {
         try {
             URL ddl = this.getDatabaseDDL(dbType);
-            assert(ddl != null) : "Failed to get DDL for " + this;
+            assert (ddl != null) : "Failed to get DDL for " + this;
             ScriptRunner runner = new ScriptRunner(conn, true, true);
             if (LOG.isDebugEnabled()) LOG.debug("Executing script '" + ddl + "'");
             runner.runScript(ddl);
@@ -275,7 +234,7 @@ public abstract class BenchmarkModule {
         try {
             Connection conn = this.makeConnection();
             ScriptRunner runner = new ScriptRunner(conn, true, true);
-            File scriptFile= new File(script);
+            File scriptFile = new File(script);
             runner.runScript(scriptFile.toURI().toURL());
             conn.close();
         } catch (SQLException ex) {
@@ -288,47 +247,38 @@ public abstract class BenchmarkModule {
     /**
      * Invoke this benchmark's database loader
      */
-    public final void loadDatabase(boolean calibrate,boolean generateFiles, String filesPath) {
+    public final void loadDatabase() {
         try {
             Connection conn = null;
-            if(!generateFiles){
-                conn = this.makeConnection();
+            if (!workConf.getUseCSV()) {
+                conn = makeConnection();
             }
-            this.loadDatabase(conn,calibrate,generateFiles,filesPath);
-            if(conn !=null){
+
+            loadDatabase(conn);
+
+            if (conn != null) {
                 conn.close();
             }
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to load the %s database", this.benchmarkName), ex);
         }
     }
-    
-    /**
-     * Invoke this benchmark's database loader
-     */
-    public final void generateCSVDatabase(boolean calibrate,boolean generateFiles, String filesPath) {
-            this.loadDatabase(null,calibrate,generateFiles,filesPath);
-
-    }
 
     /**
      * Invoke this benchmark's database loader using the given Connection handle
-     * @param conn
      */
-    protected final void loadDatabase(Connection conn, boolean calibrate, boolean generateFiles, String filesPath) {
+    private void loadDatabase(Connection conn) {
         try {
-            Loader loader = this.makeLoaderImpl(conn, calibrate,generateFiles,filesPath);
+            Loader loader = this.makeLoaderImpl(conn);
             if (loader != null) {
-                if(conn!=null){
+                if (conn != null) {
                     conn.setAutoCommit(false);
                 }
-                loader.load();
-                if(conn!= null){
-                    conn.commit();
-                }
 
-                if (loader.getTableCounts().isEmpty() == false) {
-                    LOG.info("Table Counts:\n" + loader.getTableCounts());
+                loader.load();
+
+                if (conn != null) {
+                    conn.commit();
                 }
             }
         } catch (SQLException ex) {
@@ -339,7 +289,7 @@ public abstract class BenchmarkModule {
     public final void clearDatabase() {
         try {
             Connection conn = this.makeConnection();
-            Loader loader = this.makeLoaderImpl(conn, false,false,"");
+            Loader loader = this.makeLoaderImpl(conn);
             if (loader != null) {
                 conn.setAutoCommit(false);
                 loader.unload(this.catalog);
@@ -360,29 +310,29 @@ public abstract class BenchmarkModule {
     public final String getBenchmarkName() {
         return (this.benchmarkName);
     }
+
     /**
      * Return the database's catalog
      */
     public final Catalog getCatalog() {
         return (this.catalog);
     }
+
     /**
      * Return the StatementDialects loaded for this benchmark
      */
     public final StatementDialects getStatementDialects() {
         return (this.dialects);
     }
+
     @Override
     public final String toString() {
         return benchmarkName.toUpperCase();
     }
 
     /**
-     * Initialize a TransactionType handle for the get procedure name and id
+     * Initialize a TransactionType handle for the get procedure name and id.
      * This should only be invoked a start-up time
-     * @param procName
-     * @param id
-     * @return
      */
     @SuppressWarnings("unchecked")
     public final TransactionType initTransactionType(String procName, int id) {
@@ -423,7 +373,7 @@ public abstract class BenchmarkModule {
             } // FOR
 
             for (TransactionType txn : txns) {
-                Procedure proc = (Procedure)ClassUtil.newInstance(txn.getProcedureClass(),
+                Procedure proc = ClassUtil.newInstance(txn.getProcedureClass(),
                         new Object[0],
                         new Class<?>[0]);
                 proc.initialize(this.workConf.getDBType());
@@ -437,15 +387,7 @@ public abstract class BenchmarkModule {
         return (proc_xref);
     }
 
-    /**
-     * 
-     * @param procClass
-     */
-    public final void registerSupplementalProcedure(Class<? extends Procedure> procClass) {
-        this.supplementalProcedures.add(procClass);
-    }
-
-    public void setWorkloadConfiguration(WorkloadConfiguration workConf){
-        this.workConf=workConf;
+    public void setWorkloadConfiguration(WorkloadConfiguration workConf) {
+        this.workConf = workConf;
     }
 }

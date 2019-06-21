@@ -46,96 +46,101 @@ import pt.haslab.htapbench.core.TPCCWorker;
 
 public class StockLevel extends TPCCProcedure {
 
-    private static final Logger LOG = Logger.getLogger(StockLevel.class);
-    //keying time in seconds.
-    private final long keyingTime = HTAPBConstants.keyingTime_StockLevel;
+	private static final Logger LOG = Logger.getLogger(StockLevel.class);
 
-	public SQLStmt stockGetDistOrderIdSQL = new SQLStmt("SELECT D_NEXT_O_ID FROM DISTRICT WHERE D_W_ID = ? AND D_ID = ?");
-
-	public SQLStmt stockGetCountStockSQL = new SQLStmt("SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT"
+	private SQLStmt stockGetDistOrderIdSQL = new SQLStmt("SELECT D_NEXT_O_ID " +
+			"FROM " + HTAPBConstants.TABLENAME_DISTRICT + " " +
+			"WHERE D_W_ID = ? AND D_ID = ?");
+	private SQLStmt stockGetCountStockSQL = new SQLStmt("SELECT COUNT(DISTINCT(S_I_ID)) AS STOCK_COUNT"
 			+ " FROM " + HTAPBConstants.TABLENAME_ORDERLINE + ", " + HTAPBConstants.TABLENAME_STOCK
 			+ " WHERE OL_W_ID = ?"
 			+ " AND OL_D_ID = ?"
 			+ " AND OL_O_ID < ?"
 			+ " AND OL_O_ID >= ? - 20"
 			+ " AND S_W_ID = ?"
-			+ " AND S_I_ID = OL_I_ID" + " AND S_QUANTITY < ?");
+			+ " AND S_I_ID = OL_I_ID"
+			+ " AND S_QUANTITY < ?");
 
 	// Stock Level Txn
-        
-	private PreparedStatement stockGetDistOrderId = null;
-	private PreparedStatement stockGetCountStock = null;
 
-    @Override
-	 public ResultSet run(Connection conn, Random gen,
-				int terminalWarehouseID, int numWarehouses,
-				int terminalDistrictLowerID, int terminalDistrictUpperID,
-				TPCCWorker w) throws SQLException {
-                                
-		stockGetDistOrderId = this.getPreparedStatement(conn, stockGetDistOrderIdSQL);
-		stockGetCountStock= this.getPreparedStatement(conn, stockGetCountStockSQL);
+	@Override
+	public ResultSet run(Connection conn, Random gen,
+						 int terminalWarehouseID, int numWarehouses,
+						 int terminalDistrictLowerID, int terminalDistrictUpperID,
+						 TPCCWorker w) throws SQLException {
+
+		int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID, terminalDistrictUpperID, gen);
 		int threshold = TPCCUtil.randomNumber(10, 20, gen);
 
-		int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
-
-		stockLevelTransaction(terminalWarehouseID, districtID, threshold,conn,w);
+		stockLevelTransaction(terminalWarehouseID, districtID, threshold, conn);
 
 		return null;
-	 }
+	}
 
 
+	private void stockLevelTransaction(int w_id, int d_id, int threshold, Connection conn)
+			throws SQLException {
+		PreparedStatement stockGetDistOrderId = getPreparedStatement(conn, stockGetDistOrderIdSQL);
+		PreparedStatement stockGetCountStock = getPreparedStatement(conn, stockGetCountStockSQL);
 
-		private void stockLevelTransaction(int w_id, int d_id, int threshold, Connection conn,TPCCWorker w)
-				throws SQLException {
-			int o_id = 0;
-			// XXX int i_id = 0;
-			int stock_count = 0;
+		stockGetDistOrderId.setInt(1, w_id);
+		stockGetDistOrderId.setInt(2, d_id);
 
-                        PreparedStatement stockGetDistOrderId = getPreparedStatement(conn, stockGetDistOrderIdSQL);
-			stockGetDistOrderId.setInt(1, w_id);
-			stockGetDistOrderId.setInt(2, d_id);
-			ResultSet rs = stockGetDistOrderId.executeQuery();
+		ResultSet rs = null;
 
+		try {
+			// Execute the first stock query
+			rs = stockGetDistOrderId.executeQuery();
+
+			// Try to point to the first row; otherwise throw an error
 			if (!rs.next())
-				throw new RuntimeException("D_W_ID="+ w_id +" D_ID="+ d_id+" not found!");
-			o_id = rs.getInt("D_NEXT_O_ID");
-			rs.close();
-			rs = null;
-                        PreparedStatement stockGetCountStock = getPreparedStatement(conn, stockGetCountStockSQL);
+				throw new RuntimeException("D_W_ID = " + w_id + " D_ID = " + d_id + " not found!");
 
+			int o_id = rs.getInt("D_NEXT_O_ID");
+			rs.close();
+
+			// Prepare variables for the second query
 			stockGetCountStock.setInt(1, w_id);
 			stockGetCountStock.setInt(2, d_id);
 			stockGetCountStock.setInt(3, o_id);
 			stockGetCountStock.setInt(4, o_id);
 			stockGetCountStock.setInt(5, w_id);
 			stockGetCountStock.setInt(6, threshold);
+
+			// Execute the second query
 			rs = stockGetCountStock.executeQuery();
 
 			if (!rs.next())
-				throw new RuntimeException("OL_W_ID="+w_id +" OL_D_ID="+d_id+" OL_O_ID="+o_id+" not found!");
-			stock_count = rs.getInt("STOCK_COUNT");
+				throw new RuntimeException("OL_W_ID = " + w_id + " OL_D_ID = " + d_id + " OL_O_ID = " + o_id + " not found!");
 
-			conn.commit();
-
-			rs.close();
-			rs = null;
-
-			StringBuilder terminalMessage = new StringBuilder();
-			terminalMessage
-					.append("\n+-------------------------- STOCK-LEVEL --------------------------+");
-			terminalMessage.append("\n Warehouse: ");
-			terminalMessage.append(w_id);
-			terminalMessage.append("\n District:  ");
-			terminalMessage.append(d_id);
-			terminalMessage.append("\n\n Stock Level Threshold: ");
-			terminalMessage.append(threshold);
-			terminalMessage.append("\n Low Stock Count:       ");
-			terminalMessage.append(stock_count);
-			terminalMessage
-					.append("\n+-----------------------------------------------------------------+\n\n");
-			if(LOG.isTraceEnabled())LOG.trace(terminalMessage.toString());
+			int stock_count = rs.getInt("STOCK_COUNT");
+			traceLogger(w_id, d_id, threshold, stock_count);
+		} finally {
+			if (rs != null)
+				rs.close();
 		}
-    public long getKeyingTime(){
-        return this.keyingTime;
-    }            
+
+		conn.commit();
+	}
+
+	private void traceLogger(int w_id, int d_id, int threshold, int stock_count) {
+		StringBuilder terminalMessage = new StringBuilder();
+		terminalMessage
+				.append("\n+-------------------------- STOCK-LEVEL --------------------------+");
+		terminalMessage.append("\n Warehouse: ");
+		terminalMessage.append(w_id);
+		terminalMessage.append("\n District:  ");
+		terminalMessage.append(d_id);
+		terminalMessage.append("\n\n Stock Level Threshold: ");
+		terminalMessage.append(threshold);
+		terminalMessage.append("\n Low Stock Count:       ");
+		terminalMessage.append(stock_count);
+		terminalMessage
+				.append("\n+-----------------------------------------------------------------+\n\n");
+		if (LOG.isTraceEnabled()) LOG.trace(terminalMessage.toString());
+	}
+
+	public long getKeyingTime() {
+		return HTAPBConstants.keyingTime_StockLevel; // Keying time in seconds
+	}
 }

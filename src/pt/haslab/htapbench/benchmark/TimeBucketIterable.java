@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -37,24 +37,18 @@ import pt.haslab.htapbench.api.TransactionType;
 import java.util.Iterator;
 
 public final class TimeBucketIterable implements Iterable<DistributionStatistics> {
-        private final Iterable<LatencyRecord.Sample> samples;
-        private final int windowSizeSeconds;
-        private final TransactionType txType;
+    private final Iterable<LatencyRecord.Sample> samples;
+    private final int windowSizeSeconds;
+    private final TransactionType txType;
 
-        /**
-         * @param samples
-         * @param windowSizeSeconds
-         * @param txType
-         *            Allows to filter transactions by type
-         */
-        public TimeBucketIterable(Iterable<LatencyRecord.Sample> samples, int windowSizeSeconds, TransactionType txType) {
-            this.samples = samples;
-            this.windowSizeSeconds = windowSizeSeconds;
-            this.txType = txType;
-        }
-
-        @Override
-        public Iterator<DistributionStatistics> iterator() {
-            return new TimeBucketIterator(samples.iterator(), windowSizeSeconds, txType);
-        }
+    TimeBucketIterable(Iterable<LatencyRecord.Sample> samples, int windowSizeSeconds, TransactionType txType) {
+        this.samples = samples;
+        this.windowSizeSeconds = windowSizeSeconds;
+        this.txType = txType;
     }
+
+    @Override
+    public Iterator<DistributionStatistics> iterator() {
+        return new TimeBucketIterator(samples.iterator(), windowSizeSeconds, txType);
+    }
+}

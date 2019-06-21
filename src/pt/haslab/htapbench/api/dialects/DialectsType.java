@@ -39,12 +39,11 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 
-
 /**
  * <p>Java class for dialectsType complex type.
- * 
+ *
  * <p>The following schema fragment specifies the expected content contained within this class.
- * 
+ *
  * <pre>
  * &lt;complexType name="dialectsType">
  *   &lt;complexContent>
@@ -56,41 +55,39 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
- * 
- * 
+ *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "dialectsType", propOrder = {
     "dialect"
 })
-public class DialectsType {
+class DialectsType {
 
     @XmlElement(required = true)
-    protected List<DialectType> dialect;
+    private List<DialectType> dialect;
 
     /**
      * Gets the value of the dialect property.
-     * 
+     *
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
      * This is why there is not a <CODE>set</CODE> method for the dialect property.
-     * 
+     *
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
      *    getDialect().add(newItem);
      * </pre>
-     * 
-     * 
+     *
      * <p>
      * Objects of the following type(s) are allowed in the list
      * {@link DialectType }
-     * 
-     * 
+     *
+     *
      */
-    public List<DialectType> getDialect() {
+    List<DialectType> getDialect() {
         if (dialect == null) {
             dialect = new ArrayList<DialectType>();
         }

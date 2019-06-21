@@ -39,53 +39,49 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
 public class Q5 extends GenericQuery {
-	
-    private SQLStmt buildQueryStmt(Clock clock){  
+
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
         String region = random.getRandomRegion();
-        
+
         int year = RandomParameters.randBetween(1993, 1997);
-        long date1 = RandomParameters.convertDatetoLong(year, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, 1, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+
+        long date1 = RandomParameters.convertDateToLong(year, 1, 1);
+        long date2 = RandomParameters.convertDateToLong(year + 1, 1, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
+
         String query = "SELECT n_name, "
-            +        "sum(ol_amount) AS revenue "
-            + "FROM "
-            +  HTAPBConstants.TABLENAME_CUSTOMER + ", "
-            +  HTAPBConstants.TABLENAME_ORDER +    ", "
-            +  HTAPBConstants.TABLENAME_ORDERLINE+ ", "
-            +  HTAPBConstants.TABLENAME_STOCK +    ", "
-            +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            +  HTAPBConstants.TABLENAME_NATION +   ", "
-            +  HTAPBConstants.TABLENAME_REGION 
-            + " WHERE c_id = o_c_id "
-            +   "AND c_w_id = o_w_id "
-            +   "AND c_d_id = o_d_id "
-            +   "AND ol_o_id = o_id "
-            +   "AND ol_w_id = o_w_id "
-            +   "AND ol_d_id=o_d_id "
-            +   "AND ol_w_id = s_w_id "
-            +   "AND ol_i_id = s_i_id "
-            +   "AND su_nationkey = n_nationkey "
-            +   "AND n_regionkey = r_regionkey "
-            +   "AND r_name = '"+region+"' "
-            +   "AND o_entry_d >= '"+ts1.toString()+"' "
-            +   "AND o_entry_d < '"+ts2.toString()+"' "     
-            + "GROUP BY n_name "
-            + "ORDER BY revenue DESC";
+                +      "sum(ol_amount) AS revenue "
+                + "FROM "
+                +  HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +  HTAPBConstants.TABLENAME_ORDER +    ", "
+                +  HTAPBConstants.TABLENAME_ORDERLINE+ ", "
+                +  HTAPBConstants.TABLENAME_STOCK +    ", "
+                +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +  HTAPBConstants.TABLENAME_NATION +   ", "
+                +  HTAPBConstants.TABLENAME_REGION
+                + " WHERE c_id = o_c_id "
+                +   "AND c_w_id = o_w_id "
+                +   "AND c_d_id = o_d_id "
+                +   "AND ol_o_id = o_id "
+                +   "AND ol_w_id = o_w_id "
+                +   "AND ol_d_id = o_d_id "
+                +   "AND ol_w_id = s_w_id "
+                +   "AND ol_i_id = s_i_id "
+                +   "AND su_nationkey = n_nationkey "
+                +   "AND n_regionkey = r_regionkey "
+                +   "AND r_name = '"+region+"' "
+                +   "AND o_entry_d >= '"+ts1.toString()+"' "
+                +   "AND o_entry_d < '"+ts2.toString()+"' "
+                + "GROUP BY n_name "
+                + "ORDER BY revenue DESC";
         return new SQLStmt(query);
     }
 
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
 }

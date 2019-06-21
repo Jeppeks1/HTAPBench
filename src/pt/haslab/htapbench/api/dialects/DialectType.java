@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -43,9 +43,9 @@ import javax.xml.bind.annotation.XmlType;
 
 /**
  * <p>Java class for dialectType complex type.
- * 
+ *
  * <p>The following schema fragment specifies the expected content contained within this class.
- * 
+ *
  * <pre>
  * &lt;complexType name="dialectType">
  *   &lt;complexContent>
@@ -58,12 +58,10 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
- * 
- * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "dialectType", propOrder = {
-    "procedure"
+        "procedure"
 })
 public class DialectType {
 
@@ -74,25 +72,19 @@ public class DialectType {
 
     /**
      * Gets the value of the procedure property.
-     * 
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
      * This is why there is not a <CODE>set</CODE> method for the procedure property.
-     * 
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
      *    getProcedure().add(newItem);
      * </pre>
-     * 
-     * 
      * <p>
      * Objects of the following type(s) are allowed in the list
      * {@link ProcedureType }
-     * 
-     * 
      */
     public List<ProcedureType> getProcedure() {
         if (procedure == null) {
@@ -103,11 +95,9 @@ public class DialectType {
 
     /**
      * Gets the value of the type property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     * {@link String }
      */
     public String getType() {
         return type;
@@ -115,11 +105,9 @@ public class DialectType {
 
     /**
      * Sets the value of the type property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setType(String value) {
         this.type = value;

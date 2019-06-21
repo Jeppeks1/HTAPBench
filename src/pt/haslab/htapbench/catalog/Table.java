@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -39,66 +39,74 @@ import java.util.List;
 
 
 /**
-* Table Catalog Object
-* @author Carlo A. Curino (carlo@curino.us)
-* @author pavlo
-* @author Djellel
-*/
+ * Table Catalog Object
+ *
+ * @author Carlo A. Curino (carlo@curino.us)
+ * @author pavlo
+ * @author Djellel
+ */
 public class Table extends AbstractCatalogObject {
-	private static final long serialVersionUID = 1L;
-	
-	private final List<Column> columns = new ArrayList<Column>();
+
+    private static final long serialVersionUID = 1L;
+
+    private final List<Column> columns = new ArrayList<Column>();
     private final List<IntegrityConstraint> constraints = new ArrayList<IntegrityConstraint>();
     private final List<String> primaryKeys = new ArrayList<String>();
     private final List<Index> indexes = new ArrayList<Index>();
-    
-    
-    public Table(String tableName) {
-    	super(tableName);
+
+
+    Table(String tableName) {
+        super(tableName);
     }
-    
-    public Table(Table srcTable) {
+
+    private Table(Table srcTable) {
         this(srcTable.getName());
 
         for (int i = 0, cnt = srcTable.columns.size(); i < cnt; i++) {
-            Column col = (Column)srcTable.columns.get(i).clone();
+            Column col = (Column) srcTable.columns.get(i).clone();
             this.columns.add(col);
-        } // FOR
+        }
+
         for (IntegrityConstraint ic : srcTable.constraints) {
             this.constraints.add(ic.clone());
-        } // FOR
+        }
     }
 
     @Override
     public Table clone() {
         return new Table(this);
     }
-    
+
     // ----------------------------------------------------------
     // COLUMNS
     // ----------------------------------------------------------
-    
-    public void addColumn(Column col) {
-        assert(this.columns.contains(col) == false) : "Duplicate column '" + col + "'";
+
+    void addColumn(Column col) {
+        assert (!this.columns.contains(col)) : "Duplicate column '" + col + "'";
         this.columns.add(col);
     }
-    
-    public int getColumnCount() {
+
+    private int getColumnCount() {
         return this.columns.size();
     }
+
     public List<Column> getColumns() {
         return Collections.unmodifiableList(this.columns);
     }
+
     public Column getColumn(int index) {
         return this.columns.get(index);
     }
+
     public String getColumnName(int index) {
         return this.columns.get(index).getName();
     }
-    public int getColumnIndex(Column catalog_col) {
+
+    int getColumnIndex(Column catalog_col) {
         return (this.getColumnIndex(catalog_col.getName()));
     }
-    public int getColumnIndex(String columnName) {
+
+    private int getColumnIndex(String columnName) {
         for (int i = 0, cnt = getColumnCount(); i < cnt; i++) {
             if (this.columns.get(i).getName().equalsIgnoreCase(columnName)) {
                 return (i);
@@ -106,7 +114,7 @@ public class Table extends AbstractCatalogObject {
         } // FOR
         return -1;
     }
-    
+
     public int[] getColumnTypes() {
         int types[] = new int[this.getColumnCount()];
         for (Column catalog_col : this.getColumns()) {
@@ -115,7 +123,7 @@ public class Table extends AbstractCatalogObject {
         return (types);
     }
 
-    public Column getColumnByName(String colname) {
+    Column getColumnByName(String colname) {
         int idx = getColumnIndex(colname);
         return (idx >= 0 ? this.columns.get(idx) : null);
     }
@@ -123,55 +131,49 @@ public class Table extends AbstractCatalogObject {
     // ----------------------------------------------------------
     // INDEXES
     // ----------------------------------------------------------
-    
+
     /**
      * Add a new Index for this table
-     * @param index
      */
-    public void addIndex(Index index) {
-        assert(this.indexes.contains(index) == false) : "Duplicate index '" + index + "'";
+    void addIndex(Index index) {
+        assert (!this.indexes.contains(index)) : "Duplicate index '" + index + "'";
         this.indexes.add(index);
     }
-    
+
     public Collection<Index> getIndexes() {
         return (this.indexes);
     }
-    
+
     /**
      * Return the number of indexes for this table
-     * @return
      */
     public int getIndexCount() {
         return this.indexes.size();
     }
-    
+
     /**
      * Return a particular index based on its name
-     * @param indexName
-     * @return
      */
-    public Index getIndex(String indexName) {
+    Index getIndex(String indexName) {
         for (Index catalog_idx : this.indexes) {
             if (catalog_idx.getName().equalsIgnoreCase(indexName)) {
-                return (catalog_idx); 
+                return (catalog_idx);
             }
         } // FOR
         return (null);
     }
-    
+
     // ----------------------------------------------------------
     // PRIMARY KEY INDEX
     // ----------------------------------------------------------
-    
-    
-    public void setPrimaryKeyColumns(Collection<String> colNames) {
+
+    void setPrimaryKeyColumns(Collection<String> colNames) {
         this.primaryKeys.clear();
         this.primaryKeys.addAll(colNames);
     }
-    
+
     /**
      * Get the list of column names that are the primary keys for this table
-     * @return
      */
     public List<String> getPrimaryKeyColumns() {
         return Collections.unmodifiableList(this.primaryKeys);
@@ -183,7 +185,7 @@ public class Table extends AbstractCatalogObject {
         }
     }
 
-    public void addConstraint(IntegrityConstraint ic) throws IntegrityConstraintsExistsException {
+    private void addConstraint(IntegrityConstraint ic) throws IntegrityConstraintsExistsException {
         for (IntegrityConstraint c : constraints) {
             if (c != null && c.getId().equals(ic.getId()))
                 throw new IntegrityConstraintsExistsException("A constraint " + ic.getId() + " already exists in this table");
@@ -193,23 +195,25 @@ public class Table extends AbstractCatalogObject {
 
     @Override
     public boolean equals(Object object) {
-        if ((object instanceof Table) == false) return (false);
+        if (!(object instanceof Table)) return (false);
 
-        Table table2 = (Table)object;
+        Table table2 = (Table) object;
         return (this.name.equals(table2.name) &&
                 this.columns.equals(table2.columns) &&
                 this.constraints.equals(table2.constraints));
     }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append(getName()).append(" (\n");
-        for (int i = 0, cnt = this.columns.size(); i < cnt; i++) {
-            sb.append("  ").append(this.columns.get(i)).append("\n");
-        } // FOR
+        for (Column column : this.columns) {
+            sb.append("  ").append(column).append("\n");
+        }
+
         sb.append(")");
 
-        return (sb.toString());
+        return sb.toString();
     }
 }

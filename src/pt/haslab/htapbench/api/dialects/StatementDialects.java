@@ -1,38 +1,42 @@
 
-/******************************************************************************
- *  Copyright 2015 by OLTPBenchmark Project                                   *
- *                                                                            *
- *  Licensed under the Apache License, Version 2.0 (the "License");           *
- *  you may not use this file except in compliance with the License.          *
- *  You may obtain a copy of the License at                                   *
- *                                                                            *
- *    http://www.apache.org/licenses/LICENSE-2.0                              *
- *                                                                            *
- *  Unless required by applicable law or agreed to in writing, software       *
- *  distributed under the License is distributed on an "AS IS" BASIS,         *
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
- *  See the License for the specific language governing permissions and       *
- *  limitations under the License.                                            *
- ******************************************************************************
-/*
- * Copyright 2017 by INESC TEC                                                                                                
- * This work was based on the OLTPBenchmark Project                          
+/**
+ * Copyright 2015 by OLTPBenchmark Project                                   *
+ * *
+ * Licensed under the Apache License, Version 2.0 (the "License");           *
+ * you may not use this file except in compliance with the License.          *
+ * You may obtain a copy of the License at                                   *
+ * *
+ * http://www.apache.org/licenses/LICENSE-2.0                              *
+ * *
+ * Unless required by applicable law or agreed to in writing, software       *
+ * distributed under the License is distributed on an "AS IS" BASIS,         *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
+ * See the License for the specific language governing permissions and       *
+ * limitations under the License.                                            *
+ * *****************************************************************************
+ * /*
+ * Copyright 2017 by INESC TEC
+ * This work was based on the OLTPBenchmark Project
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");           
- * you may not use this file except in compliance with the License.          
- * You may obtain a copy of the License at                                   
- *
- * http://www.apache.org/licenses/LICENSE-2.0                              
- *
- * Unless required by applicable law or agreed to in writing, software       
- * distributed under the License is distributed on an "AS IS" BASIS,         
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
- * See the License for the specific language governing permissions and       
- * limitations under the License. 
+ * @author pavlo
+ * @author pavlo
+ * @author pavlo
  */
 
 /**
- * 
+ *
  * @author pavlo
  */
 package pt.haslab.htapbench.api.dialects;
@@ -65,7 +69,7 @@ import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.types.DatabaseType;
 
 /**
- * 
+ *
  */
 public class StatementDialects {
     private static final Logger LOG = Logger.getLogger(StatementDialects.class);
@@ -74,52 +78,46 @@ public class StatementDialects {
 
     private final String xmlContext;
     private final URL xmlSchemaURL;
-    
+
     private final DatabaseType dbType;
     private final File xmlFile;
-    
+
     /**
      * ProcName -> StmtName -> SQL
      */
-    private final Map<String, Map<String, String>> dialectsMap = new HashMap<String, Map<String,String>>(); 
+    private final Map<String, Map<String, String>> dialectsMap = new HashMap<String, Map<String, String>>();
 
     /**
      * Constructor
-     * @param dbType
-     * @param xmlFile
      */
     public StatementDialects(DatabaseType dbType, File xmlFile) {
         this.dbType = dbType;
         this.xmlFile = xmlFile;
-        
+
         this.xmlContext = this.getClass().getPackage().getName() + ".dialects";
         this.xmlSchemaURL = this.getClass().getResource("dialects.xsd");
-        assert(this.xmlSchemaURL != null) :
-            "Failed to find 'dialects.xml' for " + this.getClass().getName();
+
         if (this.xmlFile != null && this.dbType != null) {
             this.load();
         } else if (LOG.isDebugEnabled()) {
             LOG.warn("DatabaseType is null. Not loading StatementDialect XML");
         }
-        
+
     }
-    
+
     /**
      * Load in the assigned XML file and populate the internal dialects map
-     * @return
      */
     protected boolean load() {
         if (this.xmlFile == null) {
-            LOG.warn(String.format("SKIP - No SQL dialect file was given.", this.xmlFile));
-            return (false);
-        }
-        else if (this.xmlFile.exists() == false) {
+            return false;
+        } else if (!this.xmlFile.exists()) {
             LOG.warn(String.format("SKIP - The SQL dialect file '%s' does not exist", this.xmlFile));
-            return (false);
+            return false;
         }
-        
+
         // COPIED FROM VoltDB's VoltCompiler.java
-        DialectsType dialects = null;
+        DialectsType dialects;
         try {
             JAXBContext jc = JAXBContext.newInstance(this.xmlContext);
             // This schema shot the sheriff.
@@ -131,26 +129,24 @@ public class StatementDialects {
             @SuppressWarnings("unchecked")
             JAXBElement<DialectsType> result = (JAXBElement<DialectsType>) unmarshaller.unmarshal(this.xmlFile);
             dialects = result.getValue();
-        }
-        catch (JAXBException ex) {
+        } catch (JAXBException ex) {
             // Convert some linked exceptions to more friendly errors.
             if (ex.getLinkedException() instanceof org.xml.sax.SAXParseException) {
                 throw new RuntimeException(String.format("Error schema validating %s - %s", xmlFile, ex.getLinkedException().getMessage()), ex);
             }
             throw new RuntimeException(ex);
-        }
-        catch (SAXException ex) {
+        } catch (SAXException ex) {
             throw new RuntimeException(String.format("Error schema validating %s - %s", xmlFile, ex.getMessage()), ex);
         }
-        
+
         if (LOG.isDebugEnabled())
             LOG.debug(String.format("Loading the SQL dialect file '%s' for %s",
-                                    this.xmlFile.getName(), this.dbType));
+                    this.xmlFile.getName(), this.dbType));
 
         for (DialectType dialect : dialects.getDialect()) {
-            assert(this.dbType != null);
-            assert(dialect != null);
-            if (dialect.getType().equalsIgnoreCase(this.dbType.name()) == false)
+            assert (this.dbType != null);
+            assert (dialect != null);
+            if (!dialect.getType().equalsIgnoreCase(this.dbType.name()))
                 continue;
 
             // For each Procedure in the XML file, go through its list of Statements
@@ -162,12 +158,12 @@ public class StatementDialects {
                 Map<String, String> procDialects = this.dialectsMap.get(procName);
                 for (StatementType statement : procedure.getStatement()) {
                     String stmtName = statement.getName();
-                    assert(stmtName.isEmpty() == false) :
-                        String.format("Invalid Statement for %s.%s", this.dbType, procName);
+                    assert (!stmtName.isEmpty()) :
+                            String.format("Invalid Statement for %s.%s", this.dbType, procName);
                     String stmtSQL = statement.getValue().trim();
-                    assert(stmtSQL.isEmpty() == false) :
-                        String.format("Invalid SQL for %s.%s.%s", this.dbType, procName, stmtName);
-                    
+                    assert (!stmtSQL.isEmpty()) :
+                            String.format("Invalid SQL for %s.%s.%s", this.dbType, procName, stmtName);
+
                     if (procDialects == null) {
                         procDialects = new HashMap<String, String>();
                         this.dialectsMap.put(procName, procDialects);
@@ -180,35 +176,35 @@ public class StatementDialects {
         if (this.dialectsMap.isEmpty()) {
             if (LOG.isDebugEnabled())
                 LOG.warn(String.format("No SQL dialect provided for %s. Using default %s",
-                                       this.dbType, DEFAULT_DB_TYPE));
+                        this.dbType, DEFAULT_DB_TYPE));
             return (false);
         }
-        
+
         return (true);
     }
-    
+
     /**
      * Export the original SQL for all of the SQLStmt in the given list of Procedures
-     * @param dbType
-     * @param procedures
+     * @param dbType a DatabaseType
+     * @param procedures a Collection of procedures
      * @return A well-formed XML export of the SQL for the given Procedures
      */
     public String export(DatabaseType dbType, Collection<Procedure> procedures) {
-        assert(procedures.isEmpty() == false) : "No procedures passed";
-        Marshaller marshaller = null;
-        JAXBContext jc = null;
-                
+        assert (!procedures.isEmpty()) : "No procedures passed";
+        Marshaller marshaller;
+        JAXBContext jc;
+
         try {
             jc = JAXBContext.newInstance(this.xmlContext);
             marshaller = jc.createMarshaller();
-            
+
             SchemaFactory sf = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
             Schema schema = sf.newSchema(this.xmlSchemaURL);
             marshaller.setSchema(schema);
         } catch (Exception ex) {
             throw new RuntimeException("Unable to initialize serializer", ex);
         }
-        
+
         List<Procedure> sorted = new ArrayList<Procedure>(procedures);
         Collections.sort(sorted, new Comparator<Procedure>() {
             @Override
@@ -216,16 +212,16 @@ public class StatementDialects {
                 return (o1.getProcedureName().compareTo(o2.getProcedureName()));
             }
         });
-        
+
         ObjectFactory factory = new ObjectFactory();
         DialectType dType = factory.createDialectType();
         dType.setType(dbType.name());
         for (Procedure proc : sorted) {
-            if (proc.getStatments().isEmpty()) continue;
-            
+            if (proc.getStatements().isEmpty()) continue;
+
             ProcedureType pType = factory.createProcedureType();
             pType.setName(proc.getProcedureName());
-            for (Entry<String, SQLStmt> e : proc.getStatments().entrySet()) {
+            for (Entry<String, SQLStmt> e : proc.getStatements().entrySet()) {
                 StatementType sType = factory.createStatementType();
                 sType.setName(e.getKey());
                 sType.setValue(e.getValue().getOriginalSQL());
@@ -235,7 +231,7 @@ public class StatementDialects {
         } // FOR
         DialectsType dialects = factory.createDialectsType();
         dialects.getDialect().add(dType);
-        
+
         StringWriter st = new StringWriter();
         try {
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -243,43 +239,36 @@ public class StatementDialects {
         } catch (JAXBException ex) {
             throw new RuntimeException("Failed to generate XML", ex);
         }
-        
+
         return (st.toString());
     }
 
     /**
      * Return the DatabaseType loaded from the XML file
-     * @return
      */
     public DatabaseType getDatabaseType() {
         return (this.dbType);
     }
-    
+
     /**
      * Return the list of Procedure names that we have dialect information for
-     * @return
      */
     protected Collection<String> getProcedureNames() {
         return (this.dialectsMap.keySet());
     }
-    
+
     /**
      * Return the list of Statement names that we have dialect information
      * for the given Procedure name. If there are SQL dialects for the given
      * Procedure, then the result will be null.
-     * @param procName
-     * @return
      */
     public Collection<String> getStatementNames(String procName) {
         Map<String, String> procDialects = this.dialectsMap.get(procName);
         return (procDialects != null ? procDialects.keySet() : null);
     }
-    
+
     /**
      * Return the SQL dialect for the given Statement in the Procedure
-     * @param procName
-     * @param stmtName
-     * @return
      */
     public String getSQL(String procName, String stmtName) {
         Map<String, String> procDialects = this.dialectsMap.get(procName);

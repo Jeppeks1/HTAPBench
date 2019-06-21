@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -35,139 +35,132 @@ package pt.haslab.htapbench.benchmark;
 import java.util.Arrays;
 
 public class DistributionStatistics {
-	private static final double[] PERCENTILES = { 0.0, 0.25, 0.5, 0.75, 0.9,
-			0.95, 0.99, 1.0 };
+    private static final double[] PERCENTILES = {0.0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0};
 
-	private static final int MINIMUM = 0;
-	private static final int PERCENTILE_25TH = 1;
-	private static final int MEDIAN = 2;
-	private static final int PERCENTILE_75TH = 3;
-	private static final int PERCENTILE_90TH = 4;
-	private static final int PERCENTILE_95TH = 5;
-	private static final int PERCENTILE_99TH = 6;
-	private static final int MAXIMUM = 7;
+    private static final int MINIMUM = 0;
+    private static final int PERCENTILE_25TH = 1;
+    private static final int MEDIAN = 2;
+    private static final int PERCENTILE_75TH = 3;
+    private static final int PERCENTILE_90TH = 4;
+    private static final int PERCENTILE_95TH = 5;
+    private static final int PERCENTILE_99TH = 6;
+    private static final int MAXIMUM = 7;
 
-	private final int count;
-	private final long[] percentiles;
-	private final double average;
-	private final double standardDeviation;
+    private final int count;
+    private final long[] percentiles;
+    private final double average;
+    private final double standardDeviation;
 
-	public DistributionStatistics(int count, long[] percentiles,
-			double average, double standardDeviation) {
-		assert count > 0;
-		assert percentiles.length == PERCENTILES.length;
-		this.count = count;
-		this.percentiles = Arrays.copyOfRange(percentiles, 0,
-				PERCENTILES.length);
-		this.average = average;
-		this.standardDeviation = standardDeviation;
-	}
+    private DistributionStatistics(int count, long[] percentiles, double average, double standardDeviation) {
+        assert count > 0;
+        assert percentiles.length == PERCENTILES.length;
+        this.count = count;
+        this.percentiles = Arrays.copyOfRange(percentiles, 0, PERCENTILES.length);
+        this.average = average;
+        this.standardDeviation = standardDeviation;
+    }
 
-	/**
-	 * Computes distribution statistics over values. WARNING: This will sort
-	 * values.
-	 */
-	public static DistributionStatistics computeStatistics(int[] values) {
-		if (values.length == 0) {
-			//			throw new IllegalArgumentException(
-			//					"cannot compute statistics for an empty list");
-			
-			long[] percentiles = new long[PERCENTILES.length];
-			for (int i = 0; i < percentiles.length; ++i) {
-				percentiles[i] = -1;
-			}
-			return new DistributionStatistics(values.length, percentiles, 0,0);
-		
-		}
-		Arrays.sort(values);
+    /**
+     * Computes distribution statistics over values. WARNING: This will sort values.
+     */
+    public static DistributionStatistics computeStatistics(int[] values) {
+        if (values.length == 0) {
+            long[] percentiles = new long[PERCENTILES.length];
+            for (int i = 0; i < percentiles.length; ++i) {
+                percentiles[i] = -1;
+            }
 
-		double sum = 0;
-		for (int i = 0; i < values.length; ++i) {
-			sum += values[i];
-		}
-		double average = sum / values.length;
+            return new DistributionStatistics(values.length, percentiles, 0, 0);
+        }
 
-		double sumDiffsSquared = 0;
-		for (int i = 0; i < values.length; ++i) {
-			double v = values[i] - average;
-			sumDiffsSquared += v * v;
-		}
-		double standardDeviation = 0;
-		if (values.length > 1) {
-			standardDeviation = Math
-					.sqrt(sumDiffsSquared / (values.length - 1));
-		}
+        Arrays.sort(values);
 
-		// NOTE: NIST recommends interpolating. This just selects the closest
-		// value, which is
-		// described as another common technique.
-		// http://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm
-		long[] percentiles = new long[PERCENTILES.length];
-		for (int i = 0; i < percentiles.length; ++i) {
-			int index = (int) (PERCENTILES[i] * values.length);
-			if (index == values.length)
-				index = values.length - 1;
-			percentiles[i] = values[index];
-		}
+        double sum = 0;
+        for (int value1 : values) {
+            sum += value1;
+        }
 
-		return new DistributionStatistics(values.length, percentiles, average,
-				standardDeviation);
-	}
+        double average = sum / values.length;
+        double sumDiffsSquared = 0;
+        double standardDeviation = 0;
 
-	public int getCount() {
-		return count;
-	}
+        for (int value : values) {
+            double v = value - average;
+            sumDiffsSquared += v * v;
+        }
 
-	public double getAverage() {
-		return average;
-	}
+        if (values.length > 1) {
+            standardDeviation = Math.sqrt(sumDiffsSquared / (values.length - 1));
+        }
 
-	public double getStandardDeviation() {
-		return standardDeviation;
-	}
+        // NOTE: NIST recommends interpolating. This just selects the closest value,
+        // which is described as another common technique.
+        // http://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm
+        long[] percentiles = new long[PERCENTILES.length];
+        for (int i = 0; i < percentiles.length; ++i) {
+            int index = (int) (PERCENTILES[i] * values.length);
+            if (index == values.length)
+                index = values.length - 1;
+            percentiles[i] = values[index];
+        }
 
-	public double getMinimum() {
-		return percentiles[MINIMUM];
-	}
+        return new DistributionStatistics(values.length, percentiles, average, standardDeviation);
+    }
 
-	public double get25thPercentile() {
-		return percentiles[PERCENTILE_25TH];
-	}
+    public int getCount() {
+        return count;
+    }
 
-	public double getMedian() {
-		return percentiles[MEDIAN];
-	}
+    double getAverage() {
+        return average;
+    }
 
-	public double get75thPercentile() {
-		return percentiles[PERCENTILE_75TH];
-	}
+    public double getStandardDeviation() {
+        return standardDeviation;
+    }
 
-	public double get90thPercentile() {
-		return percentiles[PERCENTILE_90TH];
-	}
+    double getMinimum() {
+        return percentiles[MINIMUM];
+    }
 
-	public double get95thPercentile() {
-		return percentiles[PERCENTILE_95TH];
-	}
+    double get25thPercentile() {
+        return percentiles[PERCENTILE_25TH];
+    }
 
-	public double get99thPercentile() {
-		return percentiles[PERCENTILE_99TH];
-	}
+    double getMedian() {
+        return percentiles[MEDIAN];
+    }
 
-	public double getMaximum() {
-		return percentiles[MAXIMUM];
-	}
+    double get75thPercentile() {
+        return percentiles[PERCENTILE_75TH];
+    }
 
-	@Override
-	public String toString() {
-		// convert times to ms
-		return "[min=" + getMinimum() / 1e6 + ", " + "25th="
-				+ get25thPercentile() / 1e6 + ", " + "median="
-				+ getMedian() / 1e6 + ", " + "avg=" + getAverage() / 1e6 + ", "
-				+ "75th=" + get75thPercentile() / 1e6 + ", " + "90th="
-				+ get90thPercentile() / 1e6 + ", " + "95th="
-				+ get95thPercentile() / 1e6 + ", " + "99th="
-				+ get99thPercentile() / 1e6 + ", " + "max=" + getMaximum()
-				/ 1e6 + "]";
-	}
+    double get90thPercentile() {
+        return percentiles[PERCENTILE_90TH];
+    }
+
+    double get95thPercentile() {
+        return percentiles[PERCENTILE_95TH];
+    }
+
+    double get99thPercentile() {
+        return percentiles[PERCENTILE_99TH];
+    }
+
+    double getMaximum() {
+        return percentiles[MAXIMUM];
+    }
+
+    @Override
+    public String toString() {
+        // convert times to ms
+        return "[min=" + getMinimum() / 1e6 + ", " + "25th="
+                + get25thPercentile() / 1e6 + ", " + "median="
+                + getMedian() / 1e6 + ", " + "avg=" + getAverage() / 1e6 + ", "
+                + "75th=" + get75thPercentile() / 1e6 + ", " + "90th="
+                + get90thPercentile() / 1e6 + ", " + "95th="
+                + get95thPercentile() / 1e6 + ", " + "99th="
+                + get99thPercentile() / 1e6 + ", " + "max=" + getMaximum()
+                / 1e6 + "]";
+    }
 }

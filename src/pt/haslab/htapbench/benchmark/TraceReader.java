@@ -1,40 +1,44 @@
 
-/******************************************************************************
- *  Copyright 2015 by OLTPBenchmark Project                                   *
- *                                                                            *
- *  Licensed under the Apache License, Version 2.0 (the "License");           *
- *  you may not use this file except in compliance with the License.          *
- *  You may obtain a copy of the License at                                   *
- *                                                                            *
- *    http://www.apache.org/licenses/LICENSE-2.0                              *
- *                                                                            *
- *  Unless required by applicable law or agreed to in writing, software       *
- *  distributed under the License is distributed on an "AS IS" BASIS,         *
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
- *  See the License for the specific language governing permissions and       *
- *  limitations under the License.                                            *
- ******************************************************************************
-/*
- * Copyright 2017 by INESC TEC                                                                                                
- * This work was based on the OLTPBenchmark Project                          
+/**
+ * Copyright 2015 by OLTPBenchmark Project                                   *
+ * *
+ * Licensed under the Apache License, Version 2.0 (the "License");           *
+ * you may not use this file except in compliance with the License.          *
+ * You may obtain a copy of the License at                                   *
+ * *
+ * http://www.apache.org/licenses/LICENSE-2.0                              *
+ * *
+ * Unless required by applicable law or agreed to in writing, software       *
+ * distributed under the License is distributed on an "AS IS" BASIS,         *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
+ * See the License for the specific language governing permissions and       *
+ * limitations under the License.                                            *
+ * *****************************************************************************
+ * /*
+ * Copyright 2017 by INESC TEC
+ * This work was based on the OLTPBenchmark Project
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * <p>
+ * WorkloadState, in order to repeat a given execution of a benchmark.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");           
- * you may not use this file except in compliance with the License.          
- * You may obtain a copy of the License at                                   
- *
- * http://www.apache.org/licenses/LICENSE-2.0                              
- *
- * Unless required by applicable law or agreed to in writing, software       
- * distributed under the License is distributed on an "AS IS" BASIS,         
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
- * See the License for the specific language governing permissions and       
- * limitations under the License. 
+ * @author breilly
  */
 /**
-* WorkloadState, in order to repeat a given execution of a benchmark.
-*
-* @author breilly
-*/
+ * WorkloadState, in order to repeat a given execution of a benchmark.
+ *
+ * @author breilly
+ */
 package pt.haslab.htapbench.benchmark;
 
 import java.io.BufferedReader;
@@ -59,7 +63,7 @@ public class TraceReader {
         int phaseId;
         long startTimeNs;
 
-        public TraceElement(int txnId, int phaseId, long startTimeNs) {
+        TraceElement(int txnId, int phaseId, long startTimeNs) {
             this.txnId = txnId;
             this.phaseId = phaseId;
             this.startTimeNs = startTimeNs;
@@ -67,7 +71,6 @@ public class TraceReader {
     }
 
     private LinkedList<TraceElement> tracedProcedures = new LinkedList<TraceElement>();
-    private String tracefileName;
     private int currentPhaseId;
     private long phaseStartTime;
     private boolean phaseComplete;
@@ -97,23 +100,22 @@ public class TraceReader {
             int txnIdCol = -1, phaseIdCol = -1, startTimeCol = -1;
             int index = 0;
             for (String field : splitHeader) {
-                if(field.matches(".*transaction.*"))
+                if (field.matches(".*transaction.*"))
                     txnIdCol = index;
-                else if(field.matches(".*phase.*"))
+                else if (field.matches(".*phase.*"))
                     phaseIdCol = index;
-                else if(field.matches(".*start time.*"))
+                else if (field.matches(".*start time.*"))
                     startTimeCol = index;
+
                 ++index;
             }
 
             // If any of the columns were not found, then die.
-            LOG.info("Parsing trace file using indexes: "
-                     + txnIdCol + "," + phaseIdCol + "," + startTimeCol);
+            LOG.info("Parsing trace file using indexes: " + txnIdCol + "," + phaseIdCol + "," + startTimeCol);
             if (txnIdCol < 0 || phaseIdCol < 0 || startTimeCol < 0) {
                 LOG.error("Could not understand column headers in trace file.");
                 System.exit(1);
             }
-
 
             // Now iterate through the whole file, parsing transaction info
             // line-by-line to create a list of procedures to run.
@@ -123,8 +125,7 @@ public class TraceReader {
                 while ((line = br.readLine()) != null) {
                     String[] splitLine = line.split(",");
                     int phaseId = Integer.parseInt(splitLine[phaseIdCol]);
-                    long startTimeNs = (long)(1000*1000*1000
-                                       * Double.parseDouble(splitLine[startTimeCol]));
+                    long startTimeNs = (long) (1000 * 1000 * 1000 * Double.parseDouble(splitLine[startTimeCol]));
 
                     // We base transaction start times on the start of a phase
                     if (phaseId != currPhaseId) {
@@ -136,18 +137,14 @@ public class TraceReader {
                     // Create the new procedure according to the entry in the
                     // trace file.
                     assert phaseBaseTime <= startTimeNs;
-                    tracedProcedures.add(new TraceElement(
-                                             Integer.parseInt(splitLine[txnIdCol])
-                                             , phaseId
-                                             , startTimeNs - phaseBaseTime));
+                    tracedProcedures.add(new TraceElement(Integer.parseInt(splitLine[txnIdCol]), phaseId
+                            , startTimeNs - phaseBaseTime));
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 LOG.error("Encountered a bad line in the trace file: " + line);
                 LOG.error(e.getMessage());
             }
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             LOG.error(e.getMessage());
             System.exit(1);
         }
@@ -156,8 +153,7 @@ public class TraceReader {
     /**
      * Returns a list of procedures that should be submitted to the work queue.
      */
-    public LinkedList<SubmittedProcedure> getProcedures(long nowNs)
-    {
+    public LinkedList<SubmittedProcedure> getProcedures(long nowNs) {
         long timeSincePhaseStart = nowNs - phaseStartTime;
         // Nothing to do if the list is empty.
         LinkedList<SubmittedProcedure> readyProcedures = new LinkedList<SubmittedProcedure>();
@@ -178,8 +174,7 @@ public class TraceReader {
         while (iter.hasNext()) {
             curr = iter.next();
             if (curr.phaseId != currentPhaseId
-                || curr.startTimeNs > timeSincePhaseStart)
-            {
+                    || curr.startTimeNs > timeSincePhaseStart) {
                 break;
             }
             readyProcedures.add(new SubmittedProcedure(curr.txnId, nowNs));
@@ -188,9 +183,7 @@ public class TraceReader {
 
         // If the list is now empty or the next procedure isn't from this
         // phase, then we're out of procedures for the current phase.
-        if (tracedProcedures.size() == 0
-            || tracedProcedures.peek().phaseId != currentPhaseId)
-        {
+        if (tracedProcedures.size() == 0 || tracedProcedures.peek().phaseId != currentPhaseId) {
             phaseComplete = true;
         }
 
@@ -200,15 +193,14 @@ public class TraceReader {
     /**
      * Lets the TraceReader know that a new phase has begun.
      */
-    public void changePhase(int newPhaseId, long phaseStartTime)
-    {
+    public void changePhase(int newPhaseId, long phaseStartTime) {
         // Should only change the phase if our list indicates that there are no
         // remaining procedures from earlier phases.
         TraceElement head = tracedProcedures.peek();
         if (head.phaseId < newPhaseId) {
             LOG.error("Changing to phase " + newPhaseId
-                      + " but head procedure is from"
-                      + " phase" + head.phaseId + ".");
+                    + " but head procedure is from"
+                    + " phase" + head.phaseId + ".");
             System.exit(1);
         }
 
@@ -222,9 +214,9 @@ public class TraceReader {
      * Converts the list of procedures to a CSV string for easy validation.
      */
     public String toString() {
-        StringBuilder sb = new StringBuilder(10*tracedProcedures.size());
+        StringBuilder sb = new StringBuilder(10 * tracedProcedures.size());
         sb.append("TraceReader");
-        for(TraceElement t : tracedProcedures) {
+        for (TraceElement t : tracedProcedures) {
             sb.append("\n");
             sb.append(t.txnId);
             sb.append(",");

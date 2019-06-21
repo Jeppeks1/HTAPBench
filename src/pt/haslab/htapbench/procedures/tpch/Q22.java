@@ -38,9 +38,10 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q22 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
+
         String code1 = random.getRandomPhoneCountryCode();
         String code2 = random.getRandomPhoneCountryCode();
         String code3 = random.getRandomPhoneCountryCode();
@@ -48,50 +49,44 @@ public class Q22 extends GenericQuery {
         String code5 = random.getRandomPhoneCountryCode();
         String code6 = random.getRandomPhoneCountryCode();
         String code7 = random.getRandomPhoneCountryCode();
-        
+
         String query = "SELECT substring(c_state from 1 for 1) AS country, "
-            + "count(*) AS numcust, "
-            + "sum(c_balance) AS totacctbal "
-            + "FROM " +HTAPBConstants.TABLENAME_CUSTOMER 
-            + " WHERE substring(c_phone from 1 for 2) IN ('"+code1+"', "
-            +                                    "'"+code2+"', "
-            +                                    "'"+code3+"', "
-            +                                    "'"+code4+"', "
-            +                                    "'"+code5+"', "
-            +                                    "'"+code6+"', "
-            +                                    "'"+code7+"') "
-            +   "AND c_balance > "
-            +     "(SELECT avg(c_balance) "
-            +      "FROM "
-            +      HTAPBConstants.TABLENAME_CUSTOMER
-            +      " WHERE c_balance > 0.00 "
-            +      "AND substring(c_phone from 1 for 2) IN ('"+code1+"',"
-            +                                              "'"+code2+"',"
-            +                                              "'"+code3+"',"
-            +                                              "'"+code4+"',"
-            +                                              "'"+code5+"',"
-            +                                              "'"+code6+"',"
-            +                                              "'"+code7+"')) "
-            +   "AND NOT EXISTS "
-            +     "(SELECT * "
-            +      "FROM "
-            +      HTAPBConstants.TABLENAME_ORDER 
-            +      " WHERE o_c_id = c_id "
-            +        "AND o_w_id = c_w_id "
-            +        "AND o_d_id = c_d_id) "
-            + "GROUP BY substring(c_state from 1 for 1) "
-            + "ORDER BY substring(c_state,1,1)";
+                + "count(*) AS numcust, "
+                + "sum(c_balance) AS totacctbal "
+                + "FROM " +HTAPBConstants.TABLENAME_CUSTOMER
+                + " WHERE substring(c_phone from 1 for 2) IN ('"+code1+"', "
+                +                                    "'"+code2+"', "
+                +                                    "'"+code3+"', "
+                +                                    "'"+code4+"', "
+                +                                    "'"+code5+"', "
+                +                                    "'"+code6+"', "
+                +                                    "'"+code7+"') "
+                +   "AND c_balance > "
+                +     "(SELECT avg(c_balance) "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_CUSTOMER
+                +      " WHERE c_balance > 0.00 "
+                +      "AND substring(c_phone from 1 for 2) IN ('"+code1+"',"
+                +                                              "'"+code2+"',"
+                +                                              "'"+code3+"',"
+                +                                              "'"+code4+"',"
+                +                                              "'"+code5+"',"
+                +                                              "'"+code6+"',"
+                +                                              "'"+code7+"')) "
+                +   "AND NOT EXISTS "
+                +     "(SELECT * "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_ORDER
+                +      " WHERE o_c_id = c_id "
+                +        "AND o_w_id = c_w_id "
+                +        "AND o_d_id = c_d_id) "
+                + "GROUP BY substring(c_state from 1 for 1) "
+                + "ORDER BY substring(c_state,1,1)";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -33,9 +33,8 @@
 package pt.haslab.htapbench.catalog;
 
 /**
-* 
-* @author Carlo A. Curino (carlo@curino.us)
-*/
+ * @author Carlo A. Curino (carlo@curino.us)
+ */
 public class IntegrityConstraintsExistsException extends Exception {
 
     private static final long serialVersionUID = 1L;

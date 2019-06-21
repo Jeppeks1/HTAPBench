@@ -39,58 +39,55 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q2 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
+
         String region = random.getRandomRegion();
-        region = region.substring(0, region.length()-1)+"%";
-        String i_data = "%"+random.generateRandomCharacter();
+        region = region.substring(0, region.length() - 1) + "%";
+
+        String i_data = "%" + random.generateRandomCharacter();
+
         String query ="SELECT su_suppkey, "
-            +        "su_name, "
-            +        "n_name, "
-            +        "i_id, "
-            +        "i_name, "
-            +        "su_address, "
-            +        "su_phone, "
-            +        "su_comment "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_ITEM + ", "
-            + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            + HTAPBConstants.TABLENAME_STOCK + ", "
-            + HTAPBConstants.TABLENAME_NATION +", " 
-            + HTAPBConstants.TABLENAME_REGION +", "
-            +   "(SELECT s_i_id AS m_i_id, MIN(s_quantity) AS m_s_quantity "
-            +    "FROM "
-            + HTAPBConstants.TABLENAME_STOCK +     ", "
-            + HTAPBConstants.TABLENAME_SUPPLIER +  ", "
-            + HTAPBConstants.TABLENAME_NATION +    ", "
-            + HTAPBConstants.TABLENAME_REGION
-            +      " WHERE su_nationkey=n_nationkey "
-            +      "AND n_regionkey=r_regionkey "
-            +      "AND r_name LIKE '"+region+"' "
-            +    "GROUP BY s_i_id) m "
-            + "WHERE i_id = s_i_id "
-            +   "AND su_nationkey = n_nationkey "
-            +   "AND n_regionkey = r_regionkey "
-            +   "AND i_data LIKE '"+i_data+"' "
-            +   "AND r_name LIKE '"+region+"' "
-            +   "AND i_id=m_i_id "
-            +   "AND s_quantity = m_s_quantity "
-            + "ORDER BY n_name, "
-            +          "su_name, "
-            +          "i_id";
+                +        "su_name, "
+                +        "n_name, "
+                +        "i_id, "
+                +        "i_name, "
+                +        "su_address, "
+                +        "su_phone, "
+                +        "su_comment "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_ITEM + ", "
+                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                + HTAPBConstants.TABLENAME_STOCK + ", "
+                + HTAPBConstants.TABLENAME_NATION +", "
+                + HTAPBConstants.TABLENAME_REGION +", "
+                +   "(SELECT s_i_id AS m_i_id, MIN(s_quantity) AS m_s_quantity "
+                +    "FROM "
+                + HTAPBConstants.TABLENAME_STOCK +     ", "
+                + HTAPBConstants.TABLENAME_SUPPLIER +  ", "
+                + HTAPBConstants.TABLENAME_NATION +    ", "
+                + HTAPBConstants.TABLENAME_REGION
+                +      " WHERE su_nationkey=n_nationkey "
+                +      "AND n_regionkey=r_regionkey "
+                +      "AND r_name LIKE '"+region+"' "
+                +    "GROUP BY s_i_id) m "
+                + "WHERE i_id = s_i_id "
+                +   "AND su_nationkey = n_nationkey "
+                +   "AND n_regionkey = r_regionkey "
+                +   "AND i_data LIKE '"+i_data+"' "
+                +   "AND r_name LIKE '"+region+"' "
+                +   "AND i_id=m_i_id "
+                +   "AND s_quantity = m_s_quantity "
+                + "ORDER BY n_name, "
+                +          "su_name, "
+                +          "i_id";
         return new SQLStmt(query);
-        
+
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

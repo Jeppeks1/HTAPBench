@@ -39,56 +39,52 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
 public class Q7 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(Clock clock){  
+
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
+
         String nation1 = random.getRandomNation();
         String nation2 = random.getRandomNation();
-        
-        long date1 = RandomParameters.convertDatetoLong(1995, 1, 1);
-        long date2 = RandomParameters.convertDatetoLong(1996, 12, 31);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));        
-        
+
+        long date1 = RandomParameters.convertDateToLong(1995, 1, 1);
+        long date2 = RandomParameters.convertDateToLong(1996, 12, 31);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+
         String query = "SELECT su_nationkey AS supp_nation, "
-            +        "sum(ol_amount) AS revenue "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_SUPPLIER+  ", "
-            + HTAPBConstants.TABLENAME_STOCK +    ", "
-            + HTAPBConstants.TABLENAME_ORDERLINE+ ", "
-            + HTAPBConstants.TABLENAME_ORDER +    ", "
-            + HTAPBConstants.TABLENAME_CUSTOMER + ", "
-            + HTAPBConstants.TABLENAME_NATION   + " n1, "
-            + HTAPBConstants.TABLENAME_NATION   + " n2 "
-            + "WHERE ol_supply_w_id = s_w_id "
-            +   "AND ol_i_id = s_i_id "
-            +   "AND ol_w_id = o_w_id "
-            +   "AND ol_d_id = o_d_id "
-            +   "AND ol_o_id = o_id "
-            +   "AND c_id = o_c_id "
-            +   "AND c_w_id = o_w_id "
-            +   "AND c_d_id = o_d_id "
-            +   "AND su_nationkey = n1.n_nationkey "
-            +   "AND substring(c_state,1,1) = substring(n2.n_name,1,1) "
-            +   "AND ((n1.n_name = '"+nation1+"' "
-            +         "AND n2.n_name = '"+nation2+"') "
-            +        "OR (n1.n_name = '"+nation2+"' "
-            +            "AND n2.n_name = '"+nation1+"')) "
-            +            "AND ol_delivery_d between '"+ts1.toString()+"' and '"+ts2.toString()
-            + "' GROUP BY su_nationkey "
-            + "ORDER BY su_nationkey"
-            ;
+                +      "sum(ol_amount) AS revenue "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_SUPPLIER+  ", "
+                + HTAPBConstants.TABLENAME_STOCK +    ", "
+                + HTAPBConstants.TABLENAME_ORDERLINE+ ", "
+                + HTAPBConstants.TABLENAME_ORDER +    ", "
+                + HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                + HTAPBConstants.TABLENAME_NATION   + " n1, "
+                + HTAPBConstants.TABLENAME_NATION   + " n2 "
+                + "WHERE ol_supply_w_id = s_w_id "
+                +   "AND ol_i_id = s_i_id "
+                +   "AND ol_w_id = o_w_id "
+                +   "AND ol_d_id = o_d_id "
+                +   "AND ol_o_id = o_id "
+                +   "AND c_id = o_c_id "
+                +   "AND c_w_id = o_w_id "
+                +   "AND c_d_id = o_d_id "
+                +   "AND su_nationkey = n1.n_nationkey "
+                +   "AND substring(c_state,1,1) = substring(n2.n_name,1,1) "
+                +   "AND ((n1.n_name = '"+nation1+"' "
+                +         "AND n2.n_name = '"+nation2+"') "
+                +        "OR (n1.n_name = '"+nation2+"' "
+                +            "AND n2.n_name = '"+nation1+"')) "
+                +            "AND ol_delivery_d between '"+ts1.toString()+"' and '"+ts2.toString()
+                + "' GROUP BY su_nationkey "
+                + "ORDER BY su_nationkey"
+                ;
         return new SQLStmt(query);
     }
 
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
 }

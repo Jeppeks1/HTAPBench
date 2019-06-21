@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -53,6 +53,7 @@ import java.io.*;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.zip.GZIPOutputStream;
+
 import pt.haslab.htapbench.benchmark.Results;
 
 public class ResultUploader {
@@ -74,16 +75,16 @@ public class ResultUploader {
             "terminals"
     };
 
-    XMLConfiguration expConf;
-    Results results;
-    CommandLine argsLine;
-    DBParameterCollector collector;
+    private XMLConfiguration expConf;
+    private Results results;
+    private CommandLine argsLine;
+    private DBParameterCollector collector;
 
-    String dbUrl, dbType;
-    String username, password;
-    String benchType;
-    int windowSize;
-    String uploadCode, uploadUrl;
+    private String dbUrl, dbType;
+    private String username, password;
+    private String benchType;
+    private int windowSize;
+    private String uploadCode, uploadUrl;
 
     public ResultUploader(Results r, XMLConfiguration conf, CommandLine argsLine) {
         this.expConf = conf;
@@ -109,7 +110,7 @@ public class ResultUploader {
 
     public void writeBenchmarkConf(PrintStream os) throws ConfigurationException {
         XMLConfiguration outputConf = (XMLConfiguration) expConf.clone();
-        for (String key: IGNORE_CONF) {
+        for (String key : IGNORE_CONF) {
             outputConf.clearProperty(key);
         }
         outputConf.save(os);
@@ -124,12 +125,12 @@ public class ResultUploader {
         os.println(benchType);
         os.println(results.latencyDistribution.toString());
         os.println(results.getRequestsPerSecond());
-        for (String field: BENCHMARK_KEY_FIELD) {
+        for (String field : BENCHMARK_KEY_FIELD) {
             os.println(field + "=" + expConf.getString(field));
         }
     }
 
-    public void uploadResult() throws ParseException {
+    public void uploadResult() {
         try {
             File expConfFile = File.createTempFile("expConf", ".tmp");
             File sampleFile = File.createTempFile("sample", ".tmp");
@@ -172,6 +173,7 @@ public class ResultUploader {
             httppost.setEntity(reqEntity);
 
             LOG.info("executing request " + httppost.getRequestLine());
+
             CloseableHttpResponse response = httpclient.execute(httppost);
             try {
                 HttpEntity resEntity = response.getEntity();

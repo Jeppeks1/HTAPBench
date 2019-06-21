@@ -40,50 +40,45 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
 public class Q20 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(Clock clock){ 
+
+    private SQLStmt buildQueryStmt(Clock clock){
         RandomParameters random = new RandomParameters("uniform");
+
         String nation = random.getRandomNation();
-        String char1 = random.generateRandomCharacter()+"%";
-        
+        String char1 = random.generateRandomCharacter() + "%";
+
         int year = RandomParameters.randBetween(1993, 1997);
         int month = RandomParameters.randBetween(1, 12);
-        long date1 = RandomParameters.convertDatetoLong(year, month, 1);
-        long date2 = RandomParameters.convertDatetoLong(year+1, month, 1);
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));  
+        long date1 = RandomParameters.convertDateToLong(year, month, 1);
+        long date2 = RandomParameters.convertDateToLong(year + 1, month, 1);
+
+        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
-        
-        
+
         String query = "SELECT su_name, "
-            +        "su_address "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            + HTAPBConstants.TABLENAME_NATION
-            + " WHERE su_suppkey IN "
-            +     "(SELECT mod(s_i_id * s_w_id, 10000) "
-            +      "FROM " + HTAPBConstants.TABLENAME_STOCK
-            +      " INNER JOIN "+ HTAPBConstants.TABLENAME_ITEM+" ON i_id = s_i_id "
-            +      "INNER JOIN "+HTAPBConstants.TABLENAME_ORDERLINE+" ON ol_i_id = s_i_id "
-            +      "WHERE ol_delivery_d >= '"+ts1.toString()+"' "
-            +      "AND ol_delivery_d < '"+ts2.toString()+"' "
-            +        "AND i_data LIKE '"+char1+"' "
-            +      "GROUP BY s_i_id, "
-            +               "s_w_id, "
-            +               "s_quantity HAVING 2*s_quantity > sum(ol_quantity)) "
-            +   "AND su_nationkey = n_nationkey "
-            +   "AND n_name = '"+nation+"' "
-            + "ORDER BY su_name";
+                +        "su_address "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                + HTAPBConstants.TABLENAME_NATION
+                + " WHERE su_suppkey IN "
+                +     "(SELECT mod(s_i_id * s_w_id, 10000) "
+                +      "FROM " + HTAPBConstants.TABLENAME_STOCK
+                +      " INNER JOIN "+ HTAPBConstants.TABLENAME_ITEM+" ON i_id = s_i_id "
+                +      "INNER JOIN "+HTAPBConstants.TABLENAME_ORDERLINE+" ON ol_i_id = s_i_id "
+                +      "WHERE ol_delivery_d >= '"+ts1.toString()+"' "
+                +      "AND ol_delivery_d < '"+ts2.toString()+"' "
+                +        "AND i_data LIKE '"+char1+"' "
+                +      "GROUP BY s_i_id, "
+                +               "s_w_id, "
+                +               "s_quantity HAVING 2*s_quantity > sum(ol_quantity)) "
+                +   "AND su_nationkey = n_nationkey "
+                +   "AND n_name = '"+nation+"' "
+                + "ORDER BY su_name";
         return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {        
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
 }

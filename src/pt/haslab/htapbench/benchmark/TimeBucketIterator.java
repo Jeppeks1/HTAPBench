@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -33,102 +33,89 @@
 package pt.haslab.htapbench.benchmark;
 
 import pt.haslab.htapbench.api.TransactionType;
-import pt.haslab.htapbench.benchmark.DistributionStatistics;
-import pt.haslab.htapbench.benchmark.LatencyRecord;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- *
  * @author Fábio Coelho
  */
 public final class TimeBucketIterator implements Iterator<DistributionStatistics> {
-        private final Iterator<LatencyRecord.Sample> samples;
-        private final int windowSizeSeconds;
-        private final TransactionType txType;
+    private final Iterator<LatencyRecord.Sample> samples;
+    private final int windowSizeSeconds;
+    private final TransactionType txType;
 
-        private LatencyRecord.Sample sample;
-        private long nextStartNs;
+    private LatencyRecord.Sample sample;
+    private long nextStartNs;
 
-        private DistributionStatistics next;
+    private DistributionStatistics next;
 
-        /**
-         * @param samples
-         * @param windowSizeSeconds
-         * @param txType
-         *            Allows to filter transactions by type
-         */
-        public TimeBucketIterator(Iterator<LatencyRecord.Sample> samples, int windowSizeSeconds, TransactionType txType) {
-            this.samples = samples;
-            this.windowSizeSeconds = windowSizeSeconds;
-            this.txType = txType;
+    TimeBucketIterator(Iterator<LatencyRecord.Sample> samples, int windowSizeSeconds, TransactionType txType) {
+        this.samples = samples;
+        this.windowSizeSeconds = windowSizeSeconds;
+        this.txType = txType;
+
+        if (samples.hasNext()) {
+            sample = samples.next();
+            nextStartNs = sample.startNs;
+            calculateNext();
+        }
+    }
+
+    private void calculateNext() {
+        assert next == null;
+        assert sample != null;
+        assert sample.startNs >= nextStartNs;
+
+        // Collect all samples in the time window
+        ArrayList<Integer> latencies = new ArrayList<Integer>();
+        long endNs = nextStartNs + windowSizeSeconds * 1000000000L;
+        while (sample != null && sample.startNs < endNs) {
+            // Check if a TX Type filter is set, in the default case,
+            // INVALID TXType means all should be reported, if a filter is
+            // set, only this specific transaction
+            if (txType == TransactionType.INVALID || txType.getId() == sample.tranType)
+                latencies.add(sample.latencyUs);
 
             if (samples.hasNext()) {
                 sample = samples.next();
-                // TODO: To be totally correct, we would want this to be the
-                // timestamp of the start
-                // of the measurement interval. In most cases this won't matter.
-                nextStartNs = sample.startNs;
-                calculateNext();
+            } else {
+                sample = null;
             }
         }
 
-        private void calculateNext() {
-            assert next == null;
-            assert sample != null;
-            assert sample.startNs >= nextStartNs;
+        // Set up the next time window
+        assert sample == null || endNs <= sample.startNs;
+        nextStartNs = endNs;
 
-            // Collect all samples in the time window
-            ArrayList<Integer> latencies = new ArrayList<Integer>();
-            long endNs = nextStartNs + windowSizeSeconds * 1000000000L;
-            while (sample != null && sample.startNs < endNs) {
-
-                // Check if a TX Type filter is set, in the default case,
-                // INVALID TXType means all should be reported, if a filter is
-                // set, only this specific transaction
-                if (txType == TransactionType.INVALID || txType.getId() == sample.tranType)
-                    latencies.add(sample.latencyUs);
-
-                if (samples.hasNext()) {
-                    sample = samples.next();
-                } else {
-                    sample = null;
-                }
-            }
-
-            // Set up the next time window
-            assert sample == null || endNs <= sample.startNs;
-            nextStartNs = endNs;
-
-            int[] l = new int[latencies.size()];
-            for (int i = 0; i < l.length; ++i) {
-                l[i] = latencies.get(i);
-            }
-
-            next = DistributionStatistics.computeStatistics(l);
+        int[] l = new int[latencies.size()];
+        for (int i = 0; i < l.length; ++i) {
+            l[i] = latencies.get(i);
         }
 
-        @Override
-        public boolean hasNext() {
-            return next != null;
-        }
-
-        @Override
-        public DistributionStatistics next() {
-            if (next == null)
-                throw new NoSuchElementException();
-            DistributionStatistics out = next;
-            next = null;
-            if (sample != null) {
-                calculateNext();
-            }
-            return out;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("unsupported");
-        }
+        next = DistributionStatistics.computeStatistics(l);
     }
+
+    @Override
+    public boolean hasNext() {
+        return next != null;
+    }
+
+    @Override
+    public DistributionStatistics next() {
+        if (next == null)
+            throw new NoSuchElementException();
+        DistributionStatistics out = next;
+        next = null;
+        if (sample != null) {
+            calculateNext();
+        }
+        return out;
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("unsupported");
+    }
+}

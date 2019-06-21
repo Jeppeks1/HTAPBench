@@ -40,39 +40,38 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.text.DecimalFormat;
 
 public class Q11 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){  
+
+    private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){
         RandomParameters random = new RandomParameters("uniform");
         String nation1 = random.getRandomNation();
-        
-       
-        double frac = 0.0001/wrklConf.getScaleFactor();
-        String fraction = ""+new DecimalFormat("#.#####").format(frac);
-        
+
+        double frac = 0.0001 / wrklConf.getScaleFactor();
+        String fraction = "" + new DecimalFormat("#.#####").format(frac);
+
         String query = "SELECT s_i_id, "
-            +        "sum(s_order_cnt) AS ordercount "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_STOCK + ", "
-            + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            + HTAPBConstants.TABLENAME_NATION
-            + " WHERE "
-            +   "su_nationkey = n_nationkey "
-            +   "AND n_name = '"+nation1+"' "
-            + "GROUP BY s_i_id HAVING sum(s_order_cnt) > "
-            +   "(SELECT sum(s_order_cnt) * "+fraction+" "
-            +    "FROM "
-            +    HTAPBConstants.TABLENAME_STOCK + ", "
-            +    HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            +    HTAPBConstants.TABLENAME_NATION
-            +    " WHERE "
-            +      "su_nationkey = n_nationkey "
-            +      "AND n_name = '"+nation1+"') "
-            + "ORDER BY ordercount DESC";
+                +        "sum(s_order_cnt) AS ordercount "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_STOCK + ", "
+                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                + HTAPBConstants.TABLENAME_NATION
+                + " WHERE "
+                +   "su_nationkey = n_nationkey "
+                +   "AND n_name = '"+nation1+"' "
+                + "GROUP BY s_i_id HAVING sum(s_order_cnt) > "
+                +   "(SELECT sum(s_order_cnt) * "+fraction+" "
+                +    "FROM "
+                +    HTAPBConstants.TABLENAME_STOCK + ", "
+                +    HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +    HTAPBConstants.TABLENAME_NATION
+                +    " WHERE "
+                +      "su_nationkey = n_nationkey "
+                +      "AND n_name = '"+nation1+"') "
+                + "ORDER BY ordercount DESC";
         return new SQLStmt(query);
     }
-	
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(wrklConf);
     }
 }

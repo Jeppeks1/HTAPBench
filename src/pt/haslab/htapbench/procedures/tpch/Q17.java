@@ -39,33 +39,27 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q17 extends GenericQuery {
-	
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
-        String st1 = "%"+random.generateRandomCharacter();
-        
+        String st1 = "%" + random.generateRandomCharacter();
+
         String query = "SELECT SUM(ol_amount) / 2.0 AS avg_yearly "
-            + "FROM "+ HTAPBConstants.TABLENAME_ORDERLINE + ", "
-            +   "(SELECT i_id, AVG (ol_quantity) AS a "
-            +    "FROM "
-            +    HTAPBConstants.TABLENAME_ITEM + ", "
-            +    HTAPBConstants.TABLENAME_ORDERLINE
-            +    " WHERE i_data LIKE '"+st1+"' "
-            +      "AND ol_i_id = i_id "
-            +    "GROUP BY i_id) t "
-            + "WHERE ol_i_id = t.i_id "
-            +   "AND ol_quantity < t.a";
-       return new SQLStmt(query);
+                + "FROM "+ HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +   "(SELECT i_id, AVG (ol_quantity) AS a "
+                +    "FROM "
+                +    HTAPBConstants.TABLENAME_ITEM + ", "
+                +    HTAPBConstants.TABLENAME_ORDERLINE
+                +    " WHERE i_data LIKE '"+st1+"' "
+                +      "AND ol_i_id = i_id "
+                +    "GROUP BY i_id) t "
+                + "WHERE ol_i_id = t.i_id "
+                +   "AND ol_quantity < t.a";
+        return new SQLStmt(query);
     }
-	
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
+
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

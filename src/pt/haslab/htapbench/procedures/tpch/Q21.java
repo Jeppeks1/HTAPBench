@@ -39,47 +39,41 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q21 extends GenericQuery {
-	
-    private SQLStmt buildQueryStmt(){  
+
+    private SQLStmt buildQueryStmt(){
         RandomParameters random = new RandomParameters("uniform");
         String nation = random.getRandomNation();
-        
+
         String query = "SELECT su_name, "
-            +        "count(*) AS numwait "
-            + "FROM "
-            + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-            + HTAPBConstants.TABLENAME_ORDERLINE +" l1, "
-            + HTAPBConstants.TABLENAME_ORDER + ", "
-            + HTAPBConstants.TABLENAME_STOCK + ", "
-            + HTAPBConstants.TABLENAME_NATION 
-            + " WHERE ol_o_id = o_id "
-            +   "AND ol_w_id = o_w_id "
-            +   "AND ol_d_id = o_d_id "
-            +   "AND ol_w_id = s_w_id "
-            +   "AND ol_i_id = s_i_id "
-            +   "AND l1.ol_delivery_d > o_entry_d "
-            +   "AND NOT EXISTS "
-            +     "(SELECT * "
-            +      "FROM "+HTAPBConstants.TABLENAME_ORDERLINE+" l2 "
-            +      "WHERE l2.ol_o_id = l1.ol_o_id "
-            +        "AND l2.ol_w_id = l1.ol_w_id "
-            +        "AND l2.ol_d_id = l1.ol_d_id "
-            +        "AND l2.ol_delivery_d > l1.ol_delivery_d) "
-            +   "AND su_nationkey = n_nationkey "
-            +   "AND n_name = '"+nation+"' "
-            + "GROUP BY su_name "
-            + "ORDER BY numwait DESC, su_name";
+                +        "count(*) AS numwait "
+                + "FROM "
+                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                + HTAPBConstants.TABLENAME_ORDERLINE +" l1, "
+                + HTAPBConstants.TABLENAME_ORDER + ", "
+                + HTAPBConstants.TABLENAME_STOCK + ", "
+                + HTAPBConstants.TABLENAME_NATION
+                + " WHERE ol_o_id = o_id "
+                +   "AND ol_w_id = o_w_id "
+                +   "AND ol_d_id = o_d_id "
+                +   "AND ol_w_id = s_w_id "
+                +   "AND ol_i_id = s_i_id "
+                +   "AND l1.ol_delivery_d > o_entry_d "
+                +   "AND NOT EXISTS "
+                +     "(SELECT * "
+                +      "FROM "+HTAPBConstants.TABLENAME_ORDERLINE+" l2 "
+                +      "WHERE l2.ol_o_id = l1.ol_o_id "
+                +        "AND l2.ol_w_id = l1.ol_w_id "
+                +        "AND l2.ol_d_id = l1.ol_d_id "
+                +        "AND l2.ol_delivery_d > l1.ol_delivery_d) "
+                +   "AND su_nationkey = n_nationkey "
+                +   "AND n_name = '"+nation+"' "
+                + "GROUP BY su_name "
+                + "ORDER BY numwait DESC, su_name";
         return new SQLStmt(query);
     }
 
-    /**
-     *
-     * @param clock
-     * @param wrklConf
-     * @return
-     */
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {        
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt();
     }
 }

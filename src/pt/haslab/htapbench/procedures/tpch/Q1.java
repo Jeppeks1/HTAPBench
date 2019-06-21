@@ -40,23 +40,25 @@ import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
 public class Q1 extends GenericQuery {
-    
-    private SQLStmt buildQueryStmt(Clock clock){  
-        //compute random number of days [60,120]
+
+    private SQLStmt buildQueryStmt(Clock clock) {
+        // Compute random number of days [60,120]
         int days = RandomParameters.randBetween(60, 120);
-        //transform tpch into the correct TS in our populate.
+
+        // Transform tpch into the correct TS in our populate.
         long tpch = clock.getCurrentTs();
-        //compute the correct TS considering the delay
+
+        // Compute the correct TS considering the delay
         long ts_plusXdays = clock.computeTsMinusXDays(tpch, days);
         Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(ts_plusXdays));
-        
+
         String query = "SELECT ol_number, "
-                +        "sum(ol_quantity) AS sum_qty, "
-                +        "sum(ol_amount) AS sum_amount, "
-                +        "avg(ol_quantity) AS avg_qty, "
-                +        "avg(ol_amount) AS avg_amount, "
-                +        "count(*) AS count_order "
-                + "FROM "+ HTAPBConstants.TABLENAME_ORDERLINE 
+                + "sum(ol_quantity) AS sum_qty, "
+                + "sum(ol_amount) AS sum_amount, "
+                + "avg(ol_quantity) AS avg_qty, "
+                + "avg(ol_amount) AS avg_amount, "
+                + "count(*) AS count_order "
+                + "FROM " + HTAPBConstants.TABLENAME_ORDERLINE
                 + " WHERE ol_delivery_d > '"
                 + ts.toString()
                 + "' GROUP BY ol_number "
@@ -65,9 +67,9 @@ public class Q1 extends GenericQuery {
     }
 
     @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {     
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
         return buildQueryStmt(clock);
     }
-    
-    
+
+
 }

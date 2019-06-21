@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and       *
  *  limitations under the License.                                            *
  ******************************************************************************
-/*
+ /*
  * Copyright 2017 by INESC TEC                                                                                                
  * This work was based on the OLTPBenchmark Project                          
  *
@@ -32,18 +32,18 @@
 package pt.haslab.htapbench.types;
 
 public class ResultSetResult {
-    
+
     private int rows;
-    
-    public ResultSetResult(){
-        this.rows=0;       
+
+    public ResultSetResult() {
+        this.rows = 0;
     }
-    
-    public void setRows(int rows){
-        this.rows=rows;
+
+    public void setRows(int rows) {
+        this.rows = rows;
     }
-    
-    public int getRows(){
+
+    public int getRows() {
         return this.rows;
     }
 }
