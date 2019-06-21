@@ -17,9 +17,8 @@
  */
 package pt.haslab.htapbench.core;
 
-import pt.haslab.htapbench.api.BenchmarkModule;
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.densitity.Clock;
+import pt.haslab.htapbench.benchmark.*;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

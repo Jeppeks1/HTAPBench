@@ -37,7 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
 import pt.haslab.htapbench.api.Procedure;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
+import pt.haslab.htapbench.core.TPCCWorker;
 
 
 public abstract class TPCCProcedure extends Procedure {

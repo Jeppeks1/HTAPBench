@@ -41,15 +41,14 @@ import java.util.Random;
 import org.apache.log4j.Logger;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.benchmark.TPCCUtil;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.jTPCCConfig;
+import pt.haslab.htapbench.util.TPCCUtil;
+import pt.haslab.htapbench.core.TPCCWorker;
 
 public class StockLevel extends TPCCProcedure {
 
     private static final Logger LOG = Logger.getLogger(StockLevel.class);
     //keying time in seconds.
-    private final long keyingTime = jTPCCConfig.keyingTime_StockLevel;
+    private final long keyingTime = HTAPBConstants.keyingTime_StockLevel;
 
 	public SQLStmt stockGetDistOrderIdSQL = new SQLStmt("SELECT D_NEXT_O_ID FROM DISTRICT WHERE D_W_ID = ? AND D_ID = ?");
 

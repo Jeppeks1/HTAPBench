@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.apache.commons.io.IOUtils;
-import pt.haslab.htapbench.api.BenchmarkModule;
+import pt.haslab.htapbench.benchmark.BenchmarkModule;
 
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.types.SortDirectionType;
@@ -150,10 +150,6 @@ public final class Catalog {
     
     /**
      * Construct the set of Table objects from a given Connection handle
-     * @param conn
-     * @return
-     * @throws SQLException
-     * @see http://docs.oracle.com/javase/6/docs/api/java/sql/DatabaseMetaData.html
      */
     protected void init() throws SQLException {
         // Load the database's DDL

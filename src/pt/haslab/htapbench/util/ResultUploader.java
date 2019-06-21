@@ -53,7 +53,7 @@ import java.io.*;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.zip.GZIPOutputStream;
-import pt.haslab.htapbench.core.Results;
+import pt.haslab.htapbench.benchmark.Results;
 
 public class ResultUploader {
     private static final Logger LOG = Logger.getLogger(ResultUploader.class);

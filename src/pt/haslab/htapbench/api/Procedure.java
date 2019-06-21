@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+import pt.haslab.htapbench.api.dialects.StatementDialects;
 import pt.haslab.htapbench.jdbc.AutoIncrementPreparedStatement;
 import pt.haslab.htapbench.types.DatabaseType;
 
@@ -71,7 +72,7 @@ public abstract class Procedure {
      * @return
      */
     @SuppressWarnings("unchecked")
-    protected final <T extends Procedure> T initialize(DatabaseType dbType) {
+    public final <T extends Procedure> T initialize(DatabaseType dbType) {
         this.dbType = dbType;
         this.name_stmt_xref = Procedure.getStatments(this);
         for (Entry<String, SQLStmt> e : this.name_stmt_xref.entrySet()) {
@@ -86,7 +87,7 @@ public abstract class Procedure {
     /**
      * Return the name of this Procedure
      */
-    protected final String getProcedureName() {
+    public final String getProcedureName() {
         return (this.procName);
     }
 
@@ -112,7 +113,6 @@ public abstract class Procedure {
      * for the target DBMS is used for this SQLStmt. 
      * @param conn
      * @param stmt
-     * @param returnGeneratedKeys 
      * @return
      * @throws SQLException
      */
@@ -177,9 +177,8 @@ public abstract class Procedure {
     
     /**
      * Fetch the SQL from the dialect map
-     * @param dialectMap 
      */
-    protected final void loadSQLDialect(StatementDialects dialects) {
+    public final void loadSQLDialect(StatementDialects dialects) {
         assert(this.name_stmt_xref != null) :
             "Trying to access Procedure " + this.procName + " before it is initialized!";
         Collection<String> stmtNames = dialects.getStatementNames(this.procName);
@@ -208,7 +207,7 @@ public abstract class Procedure {
      * Hook for testing
      * @return
      */
-    protected final Map<String, SQLStmt> getStatments() {
+    public final Map<String, SQLStmt> getStatments() {
         assert(this.name_stmt_xref != null) :
             "Trying to access Procedure " + this.procName + " before it is initialized!";
         return (Collections.unmodifiableMap(this.name_stmt_xref));

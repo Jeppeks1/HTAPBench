@@ -33,7 +33,6 @@
 package pt.haslab.htapbench.core;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,10 +45,8 @@ import org.apache.commons.collections15.map.ListOrderedMap;
 import org.apache.log4j.Logger;
 
 import pt.haslab.htapbench.api.TransactionType;
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
+import pt.haslab.htapbench.benchmark.*;
 import pt.haslab.htapbench.util.Histogram;
-import pt.haslab.htapbench.util.QueueLimitException;
 import pt.haslab.htapbench.util.StringUtil;
 import pt.haslab.htapbench.types.State;
 
@@ -183,19 +180,19 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler{
         }
     } // CLASS
 
-    public static Results runRateLimitedOLTP(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate) throws QueueLimitException, IOException {
+    public static Results runRateLimitedOLTP(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate) {
         ThreadBench bench = new ThreadBench(workers, workConfs,calibrate,intervalMonitoring);
         bench.intervalMonitor = intervalMonitoring;
         return bench.runRateLimitedMultiPhase();
     }
     
-    public static Results runOLAP(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate) throws QueueLimitException, IOException {
+    public static Results runOLAP(List<Worker> workers, List<WorkloadConfiguration> workConfs, int intervalMonitoring, boolean calibrate) {
         ThreadBench bench = new ThreadBench(workers, workConfs,calibrate,intervalMonitoring);
         bench.intervalMonitor = intervalMonitoring;
         return bench.runRateLimitedMultiPhase("OLAP");
     }   
     
-    public Results runRateLimitedMultiPhase(String name) throws QueueLimitException, IOException {
+    public Results runRateLimitedMultiPhase(String name) {
         assert olaptestState == null;
         olaptestState = new BenchmarkState(workers.size() + 1);
         workStates = new ArrayList<WorkloadState>();
@@ -451,7 +448,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler{
         }
     }
 
-    public Results runRateLimitedMultiPhase() throws QueueLimitException, IOException {
+    public Results runRateLimitedMultiPhase() {
         assert oltptestState == null;
         oltptestState = new BenchmarkState(workers.size() + 1);
         workStates = new ArrayList<WorkloadState>();

@@ -43,9 +43,9 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 import pt.haslab.htapbench.api.Procedure;
 import pt.haslab.htapbench.api.SQLStmt;
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.core.WorkloadConfiguration;
-import pt.haslab.htapbench.densitity.Clock;
+import pt.haslab.htapbench.core.Worker;
+import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
+import pt.haslab.htapbench.core.Clock;
 
 public abstract class GenericQuery extends Procedure {
 

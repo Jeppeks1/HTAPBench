@@ -97,7 +97,7 @@ public final class SQLStmt {
         return (this.sql);
     }
     
-    protected final String getOriginalSQL() {
+    public final String getOriginalSQL() {
         return (this.orig_sql);
     }
 

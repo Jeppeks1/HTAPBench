@@ -37,9 +37,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import pt.haslab.htapbench.distributions.Distribution;
-import pt.haslab.htapbench.distributions.HotspotDistribution;
-import pt.haslab.htapbench.distributions.UniformDistribution;
+import pt.haslab.htapbench.random.distributions.Distribution;
+import pt.haslab.htapbench.random.distributions.HotspotDistribution;
+import pt.haslab.htapbench.random.distributions.UniformDistribution;
 
 
 /**

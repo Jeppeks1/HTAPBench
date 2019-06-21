@@ -40,18 +40,16 @@ import java.sql.Timestamp;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
-import pt.haslab.htapbench.api.Procedure.UserAbortException;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.benchmark.TPCCUtil;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.jTPCCConfig;
+import pt.haslab.htapbench.util.TPCCUtil;
+import pt.haslab.htapbench.core.TPCCWorker;
 
 public class NewOrder extends TPCCProcedure {
 
     private static final Logger LOG = Logger.getLogger(NewOrder.class);
     //keying time in seconds.
-    private final long keyingTime = jTPCCConfig.keyingTime_NewOrder;
+    private final long keyingTime = HTAPBConstants.keyingTime_NewOrder;
 
     public final SQLStmt stmtGetCustWhseSQL = new SQLStmt(
     		"SELECT C_DISCOUNT, C_LAST, C_CREDIT, W_TAX"
@@ -144,7 +142,7 @@ public class NewOrder extends TPCCProcedure {
 
 		// we need to cause 1% of the new orders to be rolled back.
 		if (TPCCUtil.randomNumber(1, 100, gen) == 1)
-			itemIDs[numItems - 1] = jTPCCConfig.INVALID_ITEM_ID;
+			itemIDs[numItems - 1] = HTAPBConstants.INVALID_ITEM_ID;
 
 
 		newOrderTransaction(terminalWarehouseID, districtID,
@@ -272,7 +270,7 @@ public class NewOrder extends TPCCProcedure {
 					// This is (hopefully) an expected error: this is an
 					// expected new order rollback
 					assert ol_number == o_ol_cnt;
-					assert ol_i_id == jTPCCConfig.INVALID_ITEM_ID;
+					assert ol_i_id == HTAPBConstants.INVALID_ITEM_ID;
 					rs.close();
 					throw new UserAbortException(
 							"EXPECTED new order rollback: I_ID=" + ol_i_id

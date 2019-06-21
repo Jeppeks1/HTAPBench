@@ -43,16 +43,15 @@ import java.util.Random;
 import org.apache.log4j.Logger;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.benchmark.TPCCUtil;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.jTPCCConfig;
-import pt.haslab.htapbench.pojo.Customer;
+import pt.haslab.htapbench.util.TPCCUtil;
+import pt.haslab.htapbench.core.TPCCWorker;
+import pt.haslab.htapbench.configuration.loader.pojo.Customer;
 
 public class Payment extends TPCCProcedure {
 
     private static final Logger LOG = Logger.getLogger(Payment.class);
     //keying time in seconds.
-    private final long keyingTime = jTPCCConfig.keyingTime_Payment;
+    private final long keyingTime = HTAPBConstants.keyingTime_Payment;
 
 	public SQLStmt payUpdateWhseSQL = new SQLStmt("UPDATE " + HTAPBConstants.TABLENAME_WAREHOUSE + " SET W_YTD = W_YTD + ?  WHERE W_ID = ? ");
 	public SQLStmt payGetWhseSQL = new SQLStmt("SELECT W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_NAME"
@@ -138,7 +137,7 @@ public class Payment extends TPCCProcedure {
         		customerWarehouseID = terminalWarehouseID;
         	} else {
         		customerDistrictID = TPCCUtil.randomNumber(1,
-        				jTPCCConfig.configDistPerWhse, gen);
+        				HTAPBConstants.configDistPerWhse, gen);
         		do {
         			customerWarehouseID = TPCCUtil.randomNumber(1,
         					numWarehouses, gen);

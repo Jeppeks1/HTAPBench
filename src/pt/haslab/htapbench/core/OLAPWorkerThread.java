@@ -32,9 +32,9 @@
  */
 package pt.haslab.htapbench.core;
 
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.util.QueueLimitException;
-import java.io.IOException;
+import pt.haslab.htapbench.benchmark.Results;
+import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
+
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,10 +61,6 @@ public class OLAPWorkerThread implements Runnable{
         try {
             Thread.sleep(2*60*1000);
             results = ThreadBench.runOLAP(workers, workConfs, intervalMonitor, calibrate);
-        } catch (QueueLimitException ex) {
-            Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
         } catch (InterruptedException ex) {
             Logger.getLogger(OLAPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
         }

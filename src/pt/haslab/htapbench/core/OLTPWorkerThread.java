@@ -32,13 +32,10 @@
  */
 package pt.haslab.htapbench.core;
 
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.densitity.Clock;
-import pt.haslab.htapbench.util.QueueLimitException;
-import java.io.IOException;
+import pt.haslab.htapbench.benchmark.Results;
+import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
+
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class OLTPWorkerThread implements Runnable{
     
@@ -58,13 +55,7 @@ public class OLTPWorkerThread implements Runnable{
     
     @Override
     public void run() {
-        try {
-            results = ThreadBench.runRateLimitedOLTP(workers, workConfs, intervalMonitor, calibrate);
-        } catch (QueueLimitException ex) {
-            Logger.getLogger(OLTPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(OLTPWorkerThread.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        results = ThreadBench.runRateLimitedOLTP(workers, workConfs, intervalMonitor, calibrate);
     }
     
     public Results getResults(){

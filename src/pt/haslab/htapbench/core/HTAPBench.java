@@ -35,6 +35,7 @@ package pt.haslab.htapbench.core;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -54,18 +55,15 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.log4j.Logger;
 
-import pt.haslab.htapbench.api.BenchmarkModule;
+import pt.haslab.htapbench.benchmark.*;
 import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.api.TransactionTypes;
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.benchmark.HTAPBenchmark;
-import pt.haslab.htapbench.densitity.Clock;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.util.FileUtil;
-import pt.haslab.htapbench.util.QueueLimitException;
 import pt.haslab.htapbench.util.ResultUploader;
 import pt.haslab.htapbench.util.StringUtil;
-import pt.haslab.htapbench.util.TimeUtil;
+
+import static pt.haslab.htapbench.benchmark.HTAPBConstants.dateFormat;
 
 public class HTAPBench {
     private static final Logger LOG = Logger.getLogger(HTAPBench.class);
@@ -201,7 +199,7 @@ public class HTAPBench {
         
         String timestampValue = "";
         if (argsLine.hasOption("t")) {
-            timestampValue = String.valueOf(TimeUtil.getCurrentTime().getTime()) + "_";
+            timestampValue = dateFormat.format(new Timestamp(System.currentTimeMillis()));
         }
         
         // Seconds
@@ -835,7 +833,7 @@ public class HTAPBench {
         }
     }
 
-    private static List<Results> runHybridWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate,double error_margin) throws QueueLimitException, IOException, InstantiationException, IllegalAccessException, InterruptedException {               
+    private static List<Results> runHybridWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate,double error_margin) throws IOException, InstantiationException, IllegalAccessException, InterruptedException {
         BenchmarkModule bench = benchList.get(0);
         List<Worker> oltp_workers = new ArrayList<Worker>();
         List<Worker> olap_workers = new ArrayList<Worker>();
@@ -917,7 +915,7 @@ public class HTAPBench {
         return results;
     }
 
-    private static List<Results> runOLTPWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate) throws QueueLimitException, IOException, InstantiationException, IllegalAccessException, InterruptedException {               
+    private static List<Results> runOLTPWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate) throws IOException, InstantiationException, IllegalAccessException, InterruptedException {
         BenchmarkModule bench = benchList.get(0);
         List<Worker> oltp_workers = new ArrayList<Worker>();
         //List<Worker> olap_workers = new ArrayList<Worker>();
@@ -970,7 +968,7 @@ public class HTAPBench {
         return results;
     }
     
-    private static List<Results> runOLAPWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate) throws QueueLimitException, IOException, InstantiationException, IllegalAccessException, InterruptedException {               
+    private static List<Results> runOLAPWorkload(List<BenchmarkModule> benchList, WorkloadSetup setup, boolean verbose, int intervalMonitor,boolean calibrate) throws IOException, InstantiationException, IllegalAccessException, InterruptedException {
         BenchmarkModule bench = benchList.get(0);
         List<Worker> olap_workers = new ArrayList<Worker>();
         

@@ -43,17 +43,16 @@ import java.util.Random;
 import org.apache.log4j.Logger;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.benchmark.TPCCUtil;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.jTPCCConfig;
-import pt.haslab.htapbench.pojo.Customer;
+import pt.haslab.htapbench.util.TPCCUtil;
+import pt.haslab.htapbench.core.TPCCWorker;
+import pt.haslab.htapbench.configuration.loader.pojo.Customer;
 
 
 public class OrderStatus extends TPCCProcedure {
 
     private static final Logger LOG = Logger.getLogger(OrderStatus.class);
     //keying time in seconds.
-    private final long keyingTime = jTPCCConfig.keyingTime_OrderStatus;
+    private final long keyingTime = HTAPBConstants.keyingTime_OrderStatus;
 
 	public SQLStmt ordStatGetNewestOrdSQL = new SQLStmt("SELECT O_ID, O_CARRIER_ID, O_ENTRY_D FROM " + HTAPBConstants.TABLENAME_ORDER
 			+ " WHERE O_W_ID = ?"

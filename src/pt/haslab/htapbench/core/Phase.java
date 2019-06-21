@@ -32,9 +32,6 @@
  */
 package pt.haslab.htapbench.core;
 
-import pt.haslab.htapbench.api.Worker;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.TPCHWorker;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +60,7 @@ public class Phase {
     private int nextSerial;
     
 
-    Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
+    public Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
         ArrayList<Double> w = new ArrayList<Double>();
         for (String s : o)
             w.add(Double.parseDouble(s));

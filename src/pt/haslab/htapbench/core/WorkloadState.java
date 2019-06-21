@@ -35,14 +35,14 @@
 */
 package pt.haslab.htapbench.core;
 
-import pt.haslab.htapbench.api.Worker;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedList;
 
+import pt.haslab.htapbench.benchmark.SubmittedProcedure;
+import pt.haslab.htapbench.benchmark.TraceReader;
 import pt.haslab.htapbench.types.State;
-import pt.haslab.htapbench.util.QueueLimitException;
 import org.apache.log4j.Logger;
 
 /**
@@ -81,10 +81,8 @@ public class WorkloadState {
     
     /**
     * Add a request to do work.
-    * 
-    * @throws QueueLimitException
     */
-   public void addToQueue(int amount, boolean resetQueues, Worker worker) throws QueueLimitException {
+   public void addToQueue(int amount, boolean resetQueues, Worker worker) {
        synchronized (this) {
             if (resetQueues)
                 workQueue.clear();

@@ -31,10 +31,10 @@
  * limitations under the License. 
  */
 package pt.haslab.htapbench.procedures.tpch;
-import pt.haslab.htapbench.core.WorkloadConfiguration;
+import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.densitity.Clock;
+import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
 public class Q22 extends GenericQuery {

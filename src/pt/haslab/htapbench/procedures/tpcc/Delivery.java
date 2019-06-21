@@ -38,18 +38,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Random;
-import pt.haslab.htapbench.api.Procedure.UserAbortException;
+
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
-import pt.haslab.htapbench.benchmark.TPCCUtil;
-import pt.haslab.htapbench.benchmark.TPCCWorker;
-import pt.haslab.htapbench.benchmark.jTPCCConfig;
+import pt.haslab.htapbench.util.TPCCUtil;
+import pt.haslab.htapbench.core.TPCCWorker;
 
 
 public class Delivery extends TPCCProcedure {
 
         //keying time in seconds.
-        private final long keyingTime = jTPCCConfig.keyingTime_Delivery;
+        private final long keyingTime = HTAPBConstants.keyingTime_Delivery;
         
 	//public SQLStmt delivGetOrderIdSQL = new SQLStmt("SELECT NO_O_ID FROM " + HTAPBConstants.TABLENAME_NEWORDER + " WHERE NO_D_ID = ?"
 	//		+ " AND NO_W_ID = ? ORDER BY NO_O_ID ASC LIMIT 1");

@@ -43,9 +43,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import pt.haslab.htapbench.pojo.NewOrder;
-import pt.haslab.htapbench.pojo.Oorder;
-import pt.haslab.htapbench.pojo.OrderLine;
+import pt.haslab.htapbench.configuration.loader.pojo.NewOrder;
+import pt.haslab.htapbench.configuration.loader.pojo.Oorder;
+import pt.haslab.htapbench.configuration.loader.pojo.OrderLine;
 
 
 public class HSQLDBjdbcIO {
