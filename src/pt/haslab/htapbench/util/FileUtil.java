@@ -122,17 +122,24 @@ public abstract class FileUtil {
     }
 
     /**
-     * Create any directory in the list paths if it doesn't exist
+     * Create a directory if the directory does not already exist.
+     *
+     * @param path directory that should be created.
+     * @return boolean value indicating if the directory is empty after this procedure ended.
      */
-    public static void makeDirIfNotExists(String... paths) {
-        for (String p : paths) {
-            if (p == null)
-                continue;
-            File f = new File(p);
-            if (!f.exists()) {
-                f.mkdirs();
-            }
-        } // FOR
+    public static boolean makeDirIfNotExists(String path) {
+        File f = new File(path);
+
+        // Create the directory if it does not exist
+        if (!f.exists() && !f.mkdirs())
+            throw new RuntimeException("The path " + path + " failed to be created");
+
+        // Determine if the directory contains data
+        if (f.list().length > 0)
+            return false;
+
+        // The directory exists and is empty
+        return true;
     }
 
     static void writeStringToFile(File file, String content) throws IOException {

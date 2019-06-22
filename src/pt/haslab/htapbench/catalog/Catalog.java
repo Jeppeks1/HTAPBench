@@ -60,6 +60,7 @@ import org.apache.log4j.Logger;
 import org.apache.commons.io.IOUtils;
 import pt.haslab.htapbench.benchmark.BenchmarkModule;
 
+import pt.haslab.htapbench.configuration.Configuration;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.types.SortDirectionType;
 import pt.haslab.htapbench.util.Pair;
@@ -146,8 +147,8 @@ public final class Catalog {
      * Construct the set of Table objects from a given Connection handle
      */
     private void init() throws SQLException {
-        // Load the database's DDL
-        this.benchmark.createDatabase(DB_TYPE, this.conn);
+        // Create the database used for the in-memory catalog
+        Configuration.createDatabaseFromDDL(DB_TYPE, conn, benchmark.getBenchmarkName());
 
         // TableName -> ColumnName -> <FkeyTable, FKeyColumn>
         Map<String, Map<String, Pair<String, String>>> foreignKeys = new HashMap<String, Map<String, Pair<String, String>>>();
@@ -309,10 +310,10 @@ public final class Catalog {
     private Map<String, String> getOriginalTableNames() {
         Map<String, String> origTableNames = new HashMap<String, String>();
         Pattern p = Pattern.compile("CREATE[\\s]+TABLE[\\s]+(.*?)[\\s]+", Pattern.CASE_INSENSITIVE);
-        URL ddl = this.benchmark.getDatabaseDDL(DatabaseType.HSQLDB);
 
         String ddlContents;
         try {
+            URL ddl = Configuration.getDatabaseDDL(DatabaseType.HSQLDB, benchmark.getBenchmarkName());
             ddlContents = IOUtils.toString(ddl);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);

@@ -40,6 +40,7 @@ import java.util.Map;
 
 import org.apache.commons.collections15.map.ListOrderedMap;
 
+import pt.haslab.htapbench.configuration.Configuration.Mode;
 import pt.haslab.htapbench.api.TransactionTypes;
 import pt.haslab.htapbench.core.BenchmarkState;
 import pt.haslab.htapbench.core.Phase;
@@ -235,8 +236,8 @@ public class WorkloadConfiguration {
         return this.calibrate;
     }
 
-    public void setCalibrate(boolean calibrate) {
-        this.calibrate = calibrate;
+    public void setCalibrate(Mode mode) {
+        this.calibrate = mode != Mode.EXECUTE;
     }
 
     // Error margin

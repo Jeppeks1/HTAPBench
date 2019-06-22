@@ -50,12 +50,10 @@ import pt.haslab.htapbench.api.*;
 import pt.haslab.htapbench.api.dialects.StatementDialects;
 import pt.haslab.htapbench.catalog.Catalog;
 
-import pt.haslab.htapbench.configuration.loader.Loader;
+import pt.haslab.htapbench.configuration.Configuration;
 import pt.haslab.htapbench.core.Worker;
 import pt.haslab.htapbench.core.Clock;
-import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.util.ClassUtil;
-import pt.haslab.htapbench.util.ScriptRunner;
 
 /**
  * Base class for all benchmark implementations
@@ -74,6 +72,11 @@ public abstract class BenchmarkModule {
      * These are the variations of the Procedure's Statment SQL
      */
     protected final StatementDialects dialects;
+
+    /**
+     * The database-specific configuration instance.
+     */
+    private Configuration config = null;
 
     /**
      * Database Catalog
@@ -133,7 +136,6 @@ public abstract class BenchmarkModule {
      * configured for you, and the base class will commit+close it once this
      * method returns
      */
-    protected abstract Loader makeLoaderImpl(Connection conn) throws SQLException;
 
     protected abstract Package getProcedurePackageImpl();
 
@@ -148,27 +150,6 @@ public abstract class BenchmarkModule {
      */
     public Random rng() {
         return (this.rng);
-    }
-
-    /**
-     * Return the URL handle to the DDL used to load the benchmark's database schema.
-     */
-    public URL getDatabaseDDL(DatabaseType db_type) {
-        String ddlNames[] = {
-                this.benchmarkName + "-" + (db_type != null ? db_type.name().toLowerCase() : "") + "-ddl.sql",
-                this.benchmarkName + "-ddl.sql",
-        };
-
-        for (String ddlName : ddlNames) {
-            if (ddlName == null) continue;
-            URL ddlURL = this.getClass().getResource(ddlName);
-            if (ddlURL != null) return ddlURL;
-        }
-
-        LOG.trace(ddlNames[0] + " :or: " + ddlNames[1]);
-        LOG.error("Failed to find DDL file for " + this.benchmarkName);
-
-        return null;
     }
 
     /**
@@ -197,112 +178,24 @@ public abstract class BenchmarkModule {
         return (this.makeOLAPWorkerImpl(clock));
     }
 
-    /**
-     * Create the Benchmark Database. This is the main method used to create all
-     * the database objects (e.g., table, indexes, etc) needed for this benchmark.
-     */
-    public final void createDatabase() {
-        try {
-            Connection conn = this.makeConnection();
-            this.createDatabase(this.workConf.getDBType(), conn);
-            conn.close();
-        } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
-        }
-    }
-
-    /**
-     * Create the Benchmark Database. This is the main method used to create all
-     * the database objects (e.g., table, indexes, etc) needed for this benchmark.
-     */
-    public final void createDatabase(DatabaseType dbType, Connection conn) {
-        try {
-            URL ddl = this.getDatabaseDDL(dbType);
-            assert (ddl != null) : "Failed to get DDL for " + this;
-            ScriptRunner runner = new ScriptRunner(conn, true, true);
-            if (LOG.isDebugEnabled()) LOG.debug("Executing script '" + ddl + "'");
-            runner.runScript(ddl);
-        } catch (Exception ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
-        }
-    }
-
-    /**
-     * Run a script on a Database
-     */
-    public final void runScript(String script) {
-        try {
-            Connection conn = this.makeConnection();
-            ScriptRunner runner = new ScriptRunner(conn, true, true);
-            File scriptFile = new File(script);
-            runner.runScript(scriptFile.toURI().toURL());
-            conn.close();
-        } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to run: %s", script), ex);
-        } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to open: %s", script), ex);
-        }
-    }
-
-    /**
-     * Invoke this benchmark's database loader
-     */
-    public final void loadDatabase() {
-        try {
-            Connection conn = null;
-            if (!workConf.getUseCSV()) {
-                conn = makeConnection();
-            }
-
-            loadDatabase(conn);
-
-            if (conn != null) {
-                conn.close();
-            }
-        } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to load the %s database", this.benchmarkName), ex);
-        }
-    }
-
-    /**
-     * Invoke this benchmark's database loader using the given Connection handle
-     */
-    private void loadDatabase(Connection conn) {
-        try {
-            Loader loader = this.makeLoaderImpl(conn);
-            if (loader != null) {
-                if (conn != null) {
-                    conn.setAutoCommit(false);
-                }
-
-                loader.load();
-
-                if (conn != null) {
-                    conn.commit();
-                }
-            }
-        } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to load the %s database", this.benchmarkName), ex);
-        }
-    }
-
-    public final void clearDatabase() {
-        try {
-            Connection conn = this.makeConnection();
-            Loader loader = this.makeLoaderImpl(conn);
-            if (loader != null) {
-                conn.setAutoCommit(false);
-                loader.unload(this.catalog);
-                conn.commit();
-            }
-        } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error when trying to delete the %s database", this.benchmarkName), ex);
-        }
-    }
-
     // --------------------------------------------------------------------------
     // UTILITY METHODS
     // --------------------------------------------------------------------------
+
+    /**
+     * Return the Configuration used to configure the database.
+     */
+    public final Configuration getConfiguration() {
+        return this.config;
+    }
+
+    /**
+     * Set the Configuration used to configure the database.
+     */
+    public final void setConfiguration(Configuration config) {
+        this.config = config;
+    }
+
 
     /**
      * Return the unique identifier for this benchmark

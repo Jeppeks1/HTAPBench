@@ -111,15 +111,6 @@ public class HTAPBenchmark extends BenchmarkModule {
         return workers;
     }
 
-    @Override
-    protected Loader makeLoaderImpl(Connection conn) {
-        if (conn == null && workConf.getUseCSV()) {
-            return new HTAPBCSVLoader(this);
-        } else {
-            return new HTAPBLoader(this, conn);
-        }
-    }
-
     /**
      * This methods creates OLTP terminals.
      */

@@ -36,11 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -58,6 +54,8 @@ import org.apache.log4j.Logger;
 import pt.haslab.htapbench.benchmark.*;
 import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.api.TransactionTypes;
+import pt.haslab.htapbench.configuration.Configuration;
+import pt.haslab.htapbench.configuration.Configuration.Mode;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.util.FileUtil;
 import pt.haslab.htapbench.util.ResultUploader;
@@ -79,6 +77,7 @@ public class HTAPBench {
     // Command line arguments that are needed in the WorkloadConfiguration
     private static int intervalMonitor = 0;
     private static double error_margin;
+    private static boolean calibrate;
 
     public static void main(String[] args) throws Exception {
         // Initialize log4j
@@ -109,15 +108,13 @@ public class HTAPBench {
         Options options = new Options();
         options.addOption("b", "bench", true, "[required] Benchmark class. Currently supported: " + pluginConfig.getList("/plugin/@name"));
         options.addOption("c", "config", true, "[required] Workload configuration file");
-        options.addOption(null, "create", true, "Initialize the database for this benchmark");
-        options.addOption(null, "clear", true, "Clear all records in the database for this benchmark");
-        options.addOption(null, "load", true, "Load data using the benchmark's data loader");
-        options.addOption(null, "useCSV", true, "Generate CSV Files to Populate Database");
-        options.addOption(null, "filePathCSV", true, "Path to generate the CSV files to load the Database.");
-        options.addOption(null, "execute", true, "Execute the benchmark workload");
+        options.addOption("m", "mode", true, "[required] Mode indicating the benchmark configuration strategy." +
+                " Supported options: " + Arrays.toString(Mode.values()));
+        options.addOption(null, "overwrite", false, "Resets the database or CSV files in either the configure or generate mode.");
+        options.addOption(null, "useCSV", true, "Use CSV files in the generate or populate phase, default true.");
+        options.addOption(null, "filePathCSV", true, "Path to the CSV file directory for populating the database, default is ../csv/?tps.");
         options.addOption(null, "runscript", true, "Run an SQL script");
         options.addOption(null, "upload", true, "Upload the result");
-        options.addOption(null, "calibrate", true, "Extracts the parameter densities from the load process.");
         options.addOption(null, "oltp", true, "Runs only the OLTP stage of the benchmark.");
         options.addOption(null, "olap", true, "Runs only the OLAP stage of the benchmark.");
         options.addOption("h", "help", false, "Print this help");
@@ -144,10 +141,27 @@ public class HTAPBench {
             LOG.fatal("Missing Benchmark Class to load");
             printUsage(options);
             return;
+        } else if (!argsLine.hasOption("m")) {
+            LOG.fatal("Missing Benchmark configuration mode");
+            printUsage(options);
+            return;
         }
 
-        // If an output directory is used, store the information
-        String outputDirectory = "";
+        // Retrieve the requested Configuration configuration mode
+        String inputMode = argsLine.getOptionValue("mode").toLowerCase();
+        Mode mode = validateMode(inputMode);
+        if (mode == Mode.INVALID) {
+            LOG.fatal("Invalid mode " + inputMode + ". Print the help to see supported modes.");
+            return;
+        }
+
+        // Get the configuration file
+        String configFile = argsLine.getOptionValue("c");
+        XMLConfiguration xmlConfig = new XMLConfiguration(configFile);
+        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
+
+        // Store the output directory of the results if given, otherwise use the default "results" directory
+        String outputDirectory = "results/" + (int) xmlConfig.getDouble("target_TPS") + "tps";
         if (argsLine.hasOption("d")) {
             outputDirectory = argsLine.getOptionValue("d");
         }
@@ -169,13 +183,14 @@ public class HTAPBench {
             intervalMonitor = Integer.parseInt(argsLine.getOptionValue("im"));
         }
 
-        // Retrieve the calibrate variable
-        boolean calibrate = isBooleanOptionSet(argsLine, "calibrate");
+        // Check if the command line contained overwrite parameter
+        boolean overwrite = argsLine.hasOption("overwrite");
 
-        // Get the configuration file
-        String configFile = argsLine.getOptionValue("c");
-        XMLConfiguration xmlConfig = new XMLConfiguration(configFile);
-        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
+        // Get the standalone script if given
+        String script = argsLine.getOptionValue("runscript");
+
+        // Retrieve the calibrate variable
+        calibrate = isBooleanOptionSet(argsLine, "calibrate");
 
         // Get the error margin allowed for hybrid workloads
         error_margin = xmlConfig.getDouble("error_margin");
@@ -208,60 +223,19 @@ public class HTAPBench {
             throw new RuntimeException("No StatementDialects is available for " + benchDialect);
         }
 
-        // Create the Benchmark's Database
-        if (isBooleanOptionSet(argsLine, "create")) {
-            for (BenchmarkModule benchmark : benchList) {
-                LOG.info("Creating new " + benchmark.getBenchmarkName().toUpperCase() + " database...");
-                runCreator(benchmark);
-                LOG.info("Finished!");
-                LOG.info(SINGLE_LINE);
-            }
-        }
+        // Initialize the Configuration to prepare for the benchmark
+        for (BenchmarkModule benchmark : benchList) {
+            // Instantiate the appropriate Configuration class and configure the configuration
+            Configuration configuration = Configuration.instantiate(benchmark);
+            configuration.prepareDatabase(mode, overwrite);
 
-        // Clear the Benchmark's Database
-        if (isBooleanOptionSet(argsLine, "clear")) {
-            for (BenchmarkModule benchmark : benchList) {
-                LOG.info("Resetting " + benchmark.getBenchmarkName().toUpperCase() + " database...");
-                benchmark.clearDatabase();
-                LOG.info("Finished!");
-                LOG.info(SINGLE_LINE);
-            }
-        }
-
-        //Generate Files
-        if (isBooleanOptionSet(argsLine, "useCSV")) {
-            for (BenchmarkModule benchmark : benchList) {
-                LOG.info("Generate Files: " + benchmark.getWorkloadConfiguration().getUseCSV());
-                LOG.info("File Path: " + benchmark.getWorkloadConfiguration().getFilePathCSV());
-                runLoader(benchmark);
-                LOG.info("Finished!");
-                LOG.info(SINGLE_LINE);
-            }
-        }
-
-        // Execute Loader
-        if (isBooleanOptionSet(argsLine, "load")) {
-            for (BenchmarkModule benchmark : benchList) {
-                LOG.info("Loading data into " + benchmark.getBenchmarkName().toUpperCase() + " database...");
-                runLoader(benchmark);
-                LOG.info("Finished!");
-                LOG.info(SINGLE_LINE);
-            }
-        }
-
-        // Execute a Script
-        if (isBooleanOptionSet(argsLine, "runscript")) {
-            for (BenchmarkModule benchmark : benchList) {
-                String script = argsLine.getOptionValue("runscript");
-                LOG.info("Running a SQL script: " + script);
-                runScript(benchmark, script);
-                LOG.info("Finished!");
-                LOG.info(SINGLE_LINE);
-            }
+            // Invoke the standalone script if given
+            if (isBooleanOptionSet(argsLine, "runscript"))
+                configuration.runScript(script);
         }
 
         // Execute Workload
-        if (isBooleanOptionSet(argsLine, "execute")) {
+        if (mode == Mode.EXECUTE) {
             // Bombs away!
             List<Results> results = null;
 
@@ -385,6 +359,21 @@ public class HTAPBench {
         }
     }
 
+    private static Mode validateMode(String inputMode) {
+        switch (inputMode) {
+            case "configure":
+                return Mode.CONFIGURE;
+            case "generate":
+                return Mode.GENERATE;
+            case "populate":
+                return Mode.POPULATE;
+            case "execute":
+                return Mode.EXECUTE;
+            default:
+                return Mode.INVALID;
+        }
+    }
+
     private static List<String> get_weights(String plugin, SubnodeConfiguration work) {
 
         @SuppressWarnings("unchecked")
@@ -407,26 +396,6 @@ public class HTAPBench {
         }
 
         return weight_strings;
-    }
-
-    private static void runScript(BenchmarkModule bench, String script) {
-        LOG.debug(String.format("Running %s", script));
-        bench.runScript(script);
-    }
-
-    private static void runCreator(BenchmarkModule bench) {
-        LOG.debug(String.format("Creating %s Database", bench));
-        bench.createDatabase();
-    }
-
-    private static void runLoader(BenchmarkModule bench) {
-        if (bench.getWorkloadConfiguration().getCalibrate()) {
-            LOG.debug(String.format("Loading %s Database for calibration procedure", bench));
-        } else {
-            LOG.debug(String.format("Loading %s Database", bench));
-        }
-
-        bench.loadDatabase();
     }
 
     private static void configureBenchmarks(WorkloadSetup setup, CommandLine argsLine, String configFile,
@@ -481,11 +450,10 @@ public class HTAPBench {
             wrkld.setIntervalMonitor(intervalMonitor);
             wrkld.setErrorMargin(error_margin);
 
-            // Use the command line to set the remaining configuration values
-            if (argsLine.hasOption("calibrate")) {
-                wrkld.setCalibrate(true);
-            }
+            // Simulate error in original implementation where calibrate was hardcoded to true
+            wrkld.setCalibrate(Mode.CONFIGURE);
 
+            // Set the useCSV value according to the input
             if (argsLine.hasOption("useCSV")) {
                 wrkld.setUseCSV(Boolean.parseBoolean(argsLine.getOptionValue("useCSV")));
             }

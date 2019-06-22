@@ -63,6 +63,7 @@ public abstract class Loader {
     protected final BenchmarkModule benchmark;
     protected final Clock clock;
     protected Connection conn;
+    protected String nullConstant = "\\N";
 
     final boolean generateCsvFiles;
     final boolean calibrate;
@@ -124,6 +125,16 @@ public abstract class Loader {
      * Abstract load method
      */
     public abstract void load() throws SQLException;
+
+    /**
+     * Set the null constant to use so that the database recognizes a String
+     * to be the SQL-null value.
+     *
+     * @param nullConstant the null-constant string.
+     */
+    public void setNullConstant(String nullConstant){
+        this.nullConstant = nullConstant;
+    }
 
     /**
      * Method that can be overridden to specifically unload the tables of the

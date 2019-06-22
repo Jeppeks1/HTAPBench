@@ -52,6 +52,7 @@ import pt.haslab.htapbench.catalog.Catalog;
 import pt.haslab.htapbench.benchmark.LatencyRecord;
 import pt.haslab.htapbench.benchmark.SubmittedProcedure;
 import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
+import pt.haslab.htapbench.configuration.Configuration;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.types.ResultSetResult;
 import pt.haslab.htapbench.types.State;
@@ -73,6 +74,7 @@ public abstract class Worker implements Runnable {
     private final TransactionTypes transactionTypes;
     private final BenchmarkModule benchmarkModule;
     final WorkloadConfiguration wrkld;
+    protected final Configuration config;
     protected final Connection conn;
 
     private final Map<Class<? extends Procedure>, Procedure> class_procedures = new HashMap<Class<? extends Procedure>, Procedure>();
@@ -89,6 +91,7 @@ public abstract class Worker implements Runnable {
 
     public Worker(BenchmarkModule benchmarkModule, int id) {
         this.wrkld = benchmarkModule.getWorkloadConfiguration();
+        this.config = benchmarkModule.getConfiguration();
         this.transactionTypes = wrkld.getTransTypes();
         this.wrkldState = wrkld.getWorkloadState();
         this.benchmarkModule = benchmarkModule;
@@ -98,14 +101,8 @@ public abstract class Worker implements Runnable {
         // Check if the TransactionTypes are not null
         assert (transactionTypes != null) : "The TransactionTypes from the WorkloadConfiguration is null!";
 
-        try {
-            // Open a connection to the database for this worker
-            conn = benchmarkModule.makeConnection();
-            conn.setAutoCommit(false);
-            conn.setTransactionIsolation(this.wrkld.getIsolationMode());
-        } catch (SQLException ex) {
-            throw new RuntimeException("Failed to connect to database", ex);
-        }
+        // Initialize the connection handle for execution
+        conn = config.prepareExecution();
 
         // Generate all the Procedures that we're going to need
         procedures.putAll(benchmarkModule.getProcedures());
