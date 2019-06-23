@@ -119,7 +119,7 @@ public class HTAPBench {
         options.addOption(null, "oltp", true, "Runs only the OLTP stage of the benchmark.");
         options.addOption(null, "olap", true, "Runs only the OLAP stage of the benchmark.");
         options.addOption("h", "help", false, "Print this help");
-        options.addOption("s", "sample", true, "Sampling window");
+        options.addOption("s", "sample", true, "Aggregate the results every 'sample' seconds, default 60 seconds.");
         options.addOption("im", "interval-monitor", true, "Throughput Monitoring Interval in seconds");
         options.addOption("ss", false, "Verbose Sampling per Transaction");
         options.addOption("o", "output", true, "Output filename, default is 'res'");
@@ -193,6 +193,9 @@ public class HTAPBench {
 
         // Get the standalone script if given
         String script = argsLine.getOptionValue("runscript");
+
+        // Retrieve the sampling window parameter or set the default value
+        int windowSize = Integer.parseInt(argsLine.getOptionValue("sample", "60"));
 
         // Retrieve the calibrate variable
         calibrate = isBooleanOptionSet(argsLine, "calibrate");
@@ -270,7 +273,7 @@ public class HTAPBench {
             for (Results r : results) {
                 assert (r != null);
                 LOG.info(r.getClass());
-                ResultUploader ru = new ResultUploader(r, xmlConfig, argsLine);
+                ResultUploader ru = new ResultUploader(r, xmlConfig, windowSize);
 
                 // Make the output directory if it does not already exist
                 FileUtil.makeDirIfNotExists(outputDirectory);
@@ -305,8 +308,7 @@ public class HTAPBench {
                 ru.writeBenchmarkConf(ss);
                 ss.close();
 
-                if (argsLine.hasOption("s")) {
-                    int windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
+                if (windowSize != 0) {
                     LOG.info("Grouped into Buckets of " + windowSize + " seconds");
                     r.writeCSV(windowSize, ps);
 
@@ -820,7 +822,7 @@ public class HTAPBench {
         oltp.join();
         olap.join();
         clientBalancer.terminate();
-        client_balancer.join();
+        client_balancer.interrupt();
 
         // ----------------------------------------
         //      Wait until results are available

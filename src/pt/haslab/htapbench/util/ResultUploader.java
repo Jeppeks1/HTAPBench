@@ -86,17 +86,16 @@ public class ResultUploader {
     private int windowSize;
     private String uploadCode, uploadUrl;
 
-    public ResultUploader(Results r, XMLConfiguration conf, CommandLine argsLine) {
+    public ResultUploader(Results r, XMLConfiguration conf, int windowSize) {
         this.expConf = conf;
         this.results = r;
-        this.argsLine = argsLine;
+        this.windowSize = windowSize;
 
         dbUrl = expConf.getString("DBUrl");
         dbType = expConf.getString("dbtype");
         username = expConf.getString("username");
         password = expConf.getString("password");
-        benchType = argsLine.getOptionValue("b");
-        windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
+        benchType = expConf.getString("DBName");
         uploadCode = expConf.getString("uploadCode");
         uploadUrl = expConf.getString("uploadUrl");
 

@@ -1,19 +1,19 @@
 /*
- * Copyright 2017 by INESC TEC                                               
- * Developed by Fábio Coelho                                                 
- * This work was based on the OLTPBenchmark Project                          
+ * Copyright 2017 by INESC TEC
+ * Developed by Fábio Coelho
+ * This work was based on the OLTPBenchmark Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");           
- * you may not use this file except in compliance with the License.          
- * You may obtain a copy of the License at                                   
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0                              
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software       
- * distributed under the License is distributed on an "AS IS" BASIS,         
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
- * See the License for the specific language governing permissions and       
- * limitations under the License.                                            
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package pt.haslab.htapbench.core;
 
@@ -51,14 +51,13 @@ public class ClientBalancer implements Runnable {
     private final int deltaT = 60;
     private double error_margin;
 
+    private volatile boolean processedResults = false;
     private volatile boolean terminate = false;
     private boolean saturated = false;
     private double integral = 0;
     private int olapStreams = 0;
     private int projected_TPM;
     private int TPM = 0;
-
-
 
     // Interval requests used by the monitor
     private AtomicInteger intervalRequests = new AtomicInteger(0);
@@ -89,12 +88,12 @@ public class ClientBalancer implements Runnable {
 
     @Override
     public void run() {
-        try {
-            long measureStart = System.nanoTime();
-            int requests = 0;
-            this.latencies.addLatency(workersOLAP.size(), 0, 0, this.TPM, 0);
-            intervalRequests.incrementAndGet();
+        long measureStart = System.nanoTime();
+        int requests = 0;
+        this.latencies.addLatency(workersOLAP.size(), 0, 0, this.TPM, 0);
+        intervalRequests.incrementAndGet();
 
+        try {
             while (!terminate) {
                 requests++;
                 Thread.sleep(deltaT * 1000);
@@ -135,32 +134,47 @@ public class ClientBalancer implements Runnable {
                 this.latencies.addLatency(workersOLAP.size(), 0, 0, this.TPM, 0);
                 intervalRequests.incrementAndGet();
             }
-
-            if (terminate) {
-                long measureEnd = System.nanoTime();
-
-                for (LatencyRecord.Sample sample : getLatencyRecords()) {
-                    if (sample != null)
-                        samples.add(sample);
-                }
-                Collections.sort(samples);
-
-                // Compute stats on all the latencies
-                int[] latencies = new int[samples.size()];
-                for (int i = 0; i < samples.size(); ++i) {
-                    latencies[i] = samples.get(i).latencyUs;
-                }
-                DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
-
-                results = new Results(measureEnd - measureStart, requests, stats, samples);
-                results.setName("CLIENT BALANCER");
-            }
-        } catch (InterruptedException | IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(ClientBalancer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            if (!terminate)
+                LOG.warn("ClientBalancer received an unexpected InterruptedException.");
         }
+
+        long measureEnd = System.nanoTime();
+
+        for (LatencyRecord.Sample sample : getLatencyRecords()) {
+            if (sample != null)
+                samples.add(sample);
+        }
+
+        Collections.sort(samples);
+
+        // Compute stats on all the latencies
+        int[] latencies = new int[samples.size()];
+        for (int i = 0; i < samples.size(); ++i) {
+            latencies[i] = samples.get(i).latencyUs;
+        }
+        DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
+
+        results = new Results(measureEnd - measureStart, requests, stats, samples);
+        results.setName("CLIENT BALANCER");
+
+        processedResults = true;
+
+        LOG.info("[ClientBalancer] Finished collecting results ..");
     }
 
     public Results getResults() {
+        // Allow the interrupted thread some time to process the results
+        while (!processedResults){
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         return results;
     }
 

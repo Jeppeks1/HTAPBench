@@ -59,6 +59,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
     private WorkloadConfiguration workConf;
     private int intervalMonitor;
     private boolean isTPCC;
+    private String letter;
 
     private ThreadBench(List<? extends Worker> workers, WorkloadConfiguration workConf, int intervalMonitor) {
         this.workerThreads = new ArrayList<Thread>(workers.size());
@@ -70,6 +71,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
         // TPCC workers are created in HTAPBench, meaning the workers parameter is non-empty.
         // If the workers list is non-empty, we have to check the class instance.
         isTPCC = !workers.isEmpty() && workers.get(0) instanceof TPCCWorker;
+        letter = isTPCC ? "C" : "H";
     }
 
     private void createWorkerThreads() {
@@ -96,12 +98,21 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
 
         new WatchDogThread(testState).start();
 
-        for (int i = 0; i < workerThreads.size(); ++i) {
-            LOG.debug("Worker: [" + workerThreads.get(i).getName() + "] is finalizing");
-            workerThreads.get(i).join(30000);
-            requests += workers.get(i).getRequests();
-            workers.get(i).tearDown();
-            LOG.debug("Worker: [" + workerThreads.get(i).getName() + "] is no longer joining");
+        // We have to interrupt the workers again
+        interruptWorkers();
+
+        // Wait for the workers to finish
+        for (Thread workerThread : workerThreads) {
+            LOG.debug("Worker: [" + workerThread.getName() + "] is finalizing");
+            workerThread.join(); // Wait for the current query to hopefully finish
+            LOG.debug("Worker: [" + workerThread.getName() + "] has ended");
+        }
+
+        LOG.info("[TPC_" + letter + "] All terminals have finished ..");
+
+        // Get the number of requests for statistics
+        for (Worker w : workers) {
+            requests += w.getRequests();
         }
 
         return requests;
@@ -181,8 +192,6 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
     private Results runRateLimitedMultiPhase() {
         final BenchmarkState benchmarkState = new BenchmarkState(workers.size() + 1);
         final WorkloadState workState = workConf.initializeState(benchmarkState);
-
-        String letter = (isTPCC ? "C" : "H");
 
         createWorkerThreads();
         benchmarkState.blockForStart();
@@ -293,7 +302,7 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
                             endTime = now;
                             execute = false;
                             benchmarkState.startCoolDown();
-                            LOG.info("[TPC_" + letter + " Terminate] Waiting for all terminals to finish ..");
+                            LOG.info("[TPC_" + letter + "] Waiting for all terminals to finish ..");
                         } else {
                             phase.resetSerial();
                             LOG.info(phase.currentPhaseString());

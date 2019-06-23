@@ -121,6 +121,10 @@ public abstract class Worker implements Runnable {
             name_procedures.put(e.getKey().getName(), proc);
             class_procedures.put(proc.getClass(), proc);
         }
+
+        // Initialize the LatencyRecord to avoid a NullPointerError caused
+        // by OLAPWorkers not having their start() method invoked.
+        latencies = new LatencyRecord(0);
     }
 
     /**
@@ -264,6 +268,11 @@ public abstract class Worker implements Runnable {
                         break work;
                     }
                     break;
+                case EXIT:
+                    // All threads have reported the status DONE. This is the
+                    // last remaining thread to acknowledge that the test has
+                    // ended.
+                    break work;
             }
 
             // PART 2: Wait for work
@@ -478,6 +487,10 @@ public abstract class Worker implements Runnable {
                     + " for statement:\n" + ((InvalidResultException) ex).getStmt());
         else
             LOG.debug("Caught exception: " + ex.getMessage());
+
+        // Only record exceptions if they occurred in the measuring phase
+        if (wrkldState.getGlobalState() != State.MEASURE)
+            return;
 
         // Record the message to be able to report on all exceptions at once
         if (wrkld.getRecordAbortMessages()) {
