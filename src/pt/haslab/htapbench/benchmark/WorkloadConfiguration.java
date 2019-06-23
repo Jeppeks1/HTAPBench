@@ -80,7 +80,8 @@ public class WorkloadConfiguration {
 
     private boolean useCSV = true;
     private boolean recordAbortMessages;
-    private boolean idealClient ;
+    private boolean hybridWorkload;
+    private boolean idealClient;
     private boolean calibrate;
 
     private double scaleFactor = 1.0;
@@ -245,6 +246,11 @@ public class WorkloadConfiguration {
     public void setCalibrate(Mode mode) {
         this.calibrate = mode != Mode.EXECUTE;
     }
+
+    // Hybrid workload
+    public boolean getHybridWorkload() { return this.hybridWorkload; }
+
+    public void setHybridWorkload(boolean flag) { this.hybridWorkload = flag; }
 
     // Error margin
     public double getErrorMargin() {

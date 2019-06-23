@@ -485,12 +485,14 @@ public class HTAPBench {
                 wrkld.setScaleFactor(xmlConfig.getDouble("warehouses"));
                 terminals = (int) xmlConfig.getDouble("warehouses") * 10;
                 wrkld.setTerminals(terminals);
+                wrkld.setHybridWorkload(false);
                 rateLimited = false;
             } else if (isBooleanOptionSet(argsLine, "olap")) {
                 setup.setWarehouses(xmlConfig.getInt("warehouses"));
                 wrkld.setScaleFactor(xmlConfig.getDouble("warehouses"));
                 terminals = (int) xmlConfig.getDouble("OLAP_workers");
                 wrkld.setOLAPTerminals(terminals);
+                wrkld.setHybridWorkload(false);
                 rateLimited = false;
             } else {
                 // HTAP workload
@@ -499,6 +501,7 @@ public class HTAPBench {
                 wrkld.setOLAPTerminals(1);
                 wrkld.setScaleFactor(setup.getWarehouses());
                 wrkld.setTargetTPS(setup.getTargetTPS());
+                wrkld.setHybridWorkload(true);
                 rateLimited = true;
             }
 

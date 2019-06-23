@@ -34,13 +34,13 @@ package pt.haslab.htapbench.core;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import pt.haslab.htapbench.api.Procedure.UserAbortException;
-import pt.haslab.htapbench.api.TransactionType;
-import pt.haslab.htapbench.benchmark.BenchmarkModule;
-
+import pt.haslab.htapbench.procedures.tpch.GenericQuery.InvalidResultException;
 import pt.haslab.htapbench.procedures.tpch.GenericQuery;
-import pt.haslab.htapbench.types.ResultSetResult;
+import pt.haslab.htapbench.benchmark.BenchmarkModule;
 import pt.haslab.htapbench.types.TransactionStatus;
+import pt.haslab.htapbench.types.ResultSetResult;
+import pt.haslab.htapbench.api.TransactionType;
+
 
 public class TPCHWorker extends Worker {
 
@@ -54,21 +54,21 @@ public class TPCHWorker extends Worker {
     private static final AtomicInteger terminalId = new AtomicInteger(0);
 
     @Override
-    protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows)
-            throws UserAbortException, SQLException {
+    protected TransactionStatus executeWork(TransactionType nextTransaction, ResultSetResult rows) throws SQLException {
+        // Get the procedure to be executed
+        GenericQuery proc = (GenericQuery) this.getProcedure(nextTransaction.getProcedureClass());
+
         try {
-            GenericQuery proc = (GenericQuery) this.getProcedure(nextTransaction.getProcedureClass());
             proc.setOwner(this);
             int resultSetRowNumber = proc.run(conn, clock, super.getWorkloadConfiguration());
             rows.setRows(resultSetRowNumber);
-        } catch (ClassCastException e) {
-            System.err.println(e.toString());
-            System.err.println("TPC-H : We have been invoked with an INVALID transactionType?!");
-            throw new RuntimeException("Bad transaction type = " + nextTransaction);
+        } catch (InvalidResultException ex) {
+            recordMessage(nextTransaction, ex);
+            return TransactionStatus.INVALID_RESULT;
         }
 
         // TPCH transactions cannot be committed. If they are, it will interfere with the statistics returned.
-        return (TransactionStatus.SUCCESS);
+        return TransactionStatus.SUCCESS;
 
     }
 }

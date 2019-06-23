@@ -32,7 +32,6 @@
 package pt.haslab.htapbench.types;
 
 public enum TransactionStatus {
-
     /**
      * The transaction executed successfully and committed without
      * any errors or interruptions.
@@ -56,5 +55,18 @@ public enum TransactionStatus {
      * thrown from the transaction. The Worker should continue by
      * selecting a new random transaction to execute.
      */
-    ABORTED
+    ABORTED,
+
+    /**
+     * The transaction executed successfully but did not return
+     * a valid result set. At least one row should (usually) be
+     * returned and results with a single NULL value are invalid.
+     * This status only applies to TPC-H queries.
+     */
+    INVALID_RESULT,
+
+    /**
+     * The transaction resulted in an unknown SQLException.
+     */
+    UNKNOWN_EXCEPTION
 }

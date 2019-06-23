@@ -146,7 +146,7 @@ public class Delivery extends TPCCProcedure {
 					// this as SERIALIZABLE instead. I don't *think* that fixing this one
 					// error makes this work with MySQL's default consistency. Careful
 					// auditing would be required.
-					throw new UserAbortException(
+					throw new RuntimeException(
 							"New order w_id = "
 									+ w_id
 									+ " d_id = "

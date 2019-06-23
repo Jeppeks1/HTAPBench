@@ -237,7 +237,7 @@ public class NewOrder extends TPCCProcedure {
 
 					rs.close();
 
-					throw new UserAbortException("EXPECTED new order rollback: I_ID = " + ol_i_id + " not found!");
+					throw new NewOrderException("EXPECTED new order rollback: I_ID = " + ol_i_id + " not found!");
 				}
 
 				float i_price = rs.getFloat("I_PRICE");
