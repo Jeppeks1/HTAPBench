@@ -70,20 +70,11 @@ public class Histogram<X> implements JSONSerializable {
     private transient Map<Object, String> debug_names;
 
     /**
-     * The Min/Max values are the smallest/greatest values we have seen based
-     * on some natural ordering
+     * The Min counts are the values that have the greatest number of
+     * occurrences in the histogram
      */
-    private Comparable<X> min_value;
-    private Comparable<X> max_value;
-
-    /**
-     * The Min/Max counts are the values that have the smallest/greatest number of
-     * occurences in the histogram
-     */
-    private int min_count = 0;
-    private List<X> min_count_values;
-    private int max_count = 0;
-    private List<X> max_count_values;
+    private int tpcc_max_count = 0;
+    private int tpch_max_count = 0;
 
     /**
      * A switchable flag that determines whether non-zero entries are kept or removed
@@ -123,8 +114,6 @@ public class Histogram<X> implements JSONSerializable {
      * Set whether this histogram is allowed to retain zero count entries
      * If the flag switches from true to false, then all zero count entries will be removed
      * Default is false
-     *
-     * @param flag
      */
     private void setKeepZeroEntries(boolean flag) {
         // When this option is disabled, we need to remove all of the zeroed entries
@@ -172,7 +161,7 @@ public class Histogram<X> implements JSONSerializable {
     }
 
     /**
-     * Recalculate the min/max count value sets
+     * Recalculate the max count value sets.
      * Since this is expensive, this should only be done whenever that information is needed
      */
     @SuppressWarnings("unchecked")
@@ -181,62 +170,40 @@ public class Histogram<X> implements JSONSerializable {
 
         // New Min/Max Counts
         // The reason we have to loop through and check every time is that our 
-        // value may be the current min/max count and thus it may or may not still
-        // be after the count is changed
-        this.max_count = 0;
-        this.min_count = Integer.MAX_VALUE;
-        this.min_value = null;
-        this.max_value = null;
-
-        if (this.min_count_values == null) this.min_count_values = new ArrayList<X>();
-        if (this.max_count_values == null) this.max_count_values = new ArrayList<X>();
+        // value may be the current max count and thus it may or may not still
+        // be after the count is changed.
+        tpcc_max_count = 0;
+        tpch_max_count = 0;
 
         for (Entry<X, Integer> e : this.histogram.entrySet()) {
-            X value = e.getKey();
+            X key = e.getKey();
             int cnt = e.getValue();
 
-            // Is this value the new min/max values?
-            if (this.min_value == null || this.min_value.compareTo(value) > 0) {
-                this.min_value = (Comparable<X>) value;
-            } else if (this.max_value == null || this.max_value.compareTo(value) < 0) {
-                this.max_value = (Comparable<X>) value;
+            if (key.toString().startsWith("Q")){
+                // The key is likely referring to a query; not the most robust check
+                if (cnt > tpch_max_count) {
+                    tpch_max_count = cnt;
             }
-
-            if (cnt <= this.min_count) {
-                if (cnt < this.min_count) this.min_count_values.clear();
-                this.min_count_values.add(value);
-                this.min_count = cnt;
+            } else {
+                // The key is likely referring to a TPCC transaction
+                if (cnt > tpcc_max_count) {
+                    tpcc_max_count = cnt;
             }
-            if (cnt >= this.max_count) {
-                if (cnt > this.max_count) this.max_count_values.clear();
-                this.max_count_values.add(value);
-                this.max_count = cnt;
             }
         } // FOR
         this.dirty = false;
     }
 
     /**
-     * Reset the histogram's internal data
-     */
-    public synchronized void clear() {
-        this.histogram.clear();
-        this.num_samples = 0;
-        this.min_count = 0;
-        if (this.min_count_values != null) this.min_count_values.clear();
-        this.min_value = null;
-        this.max_count = 0;
-        if (this.max_count_values != null) this.max_count_values.clear();
-        this.max_value = null;
-        assert (this.histogram.isEmpty());
-        this.dirty = true;
-    }
-
-    /**
      * Returns true if the Histogram is empty.
      */
     public boolean isEmpty() {
-        return (this.histogram.isEmpty());
+        for (Entry<X, Integer> e : this.histogram.entrySet()) {
+            if (e.getValue() > 0)
+                return false;
+        }
+
+        return true;
     }
 
     /**
@@ -356,16 +323,17 @@ public class Histogram<X> implements JSONSerializable {
         String f = "%-" + max_length + "s [%" + max_ctr_length + "d] ";
         boolean first = true;
         boolean has_labels = this.hasDebugLabels();
-        for (Object value : this.histogram.keySet()) {
+        for (Object key : this.histogram.keySet()) {
             if (!first) s.append("\n");
             String str = null;
-            if (has_labels) str = this.debug_names.get(value);
-            if (str == null) str = (value != null ? value.toString() : "null");
+            if (has_labels) str = this.debug_names.get(key);
+            if (str == null) str = (key != null ? key.toString() : "null");
             int value_str_len = str.length();
             if (value_str_len > max_length) str = str.substring(0, max_length - 3) + "...";
 
-            int cnt = (value != null ? this.histogram.get(value) : 0);
-            int chars = (int) ((cnt / (double) this.max_count) * max_chars);
+            int max_count = key.toString().startsWith("Q") ? tpch_max_count : tpcc_max_count;
+            int cnt = (key != null ? this.histogram.get(key) : 0);
+            int chars = (int) ((cnt / (double) max_count) * max_chars);
             s.append(String.format(f, str, cnt));
             for (int i = 0; i < chars; i++) s.append(MARKER);
             first = false;

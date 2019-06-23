@@ -314,6 +314,18 @@ public class HTAPBench {
                         for (TransactionType t : activeTXTypes) {
                             PrintStream ts = ps;
 
+                            // Do not write TPCC results for analytical queries
+                            if (r.getName().equalsIgnoreCase("TPCC") && t.getName().contains("Q"))
+                                continue;
+
+                            // Do not write TPCH results for transactional queries
+                            if (r.getName().equalsIgnoreCase("TPCH") && !t.getName().contains("Q"))
+                                continue;
+
+                            // ClientBalancer results can not be more detailed
+                            if (r.getName().equalsIgnoreCase("ClientBalancer"))
+                                continue;
+
                             if (ts != System.out) {
                                 // Get the actual filename for the output
                                 String file = baseFile + "_" + t.getName();
@@ -328,28 +340,32 @@ public class HTAPBench {
                     LOG.warn("No bucket size specified");
                 }
 
-                if (argsLine.hasOption("histograms")) {
-                    LOG.info(SINGLE_LINE);
-                    if (!r.getSuccessHistogram().isEmpty())
-                        LOG.info("Completed Transactions:\n" + r.getSuccessHistogram() + "\n");
-
-                    if (!r.getAbortedHistogram().isEmpty())
-                        LOG.info("Aborted Transactions:\n" + r.getAbortedHistogram() + "\n");
-
-                    if (!r.getRetryHistogram().isEmpty())
-                        LOG.info("Retried Transactions:\n" + r.getRetryHistogram());
-
-                    if (!r.getErrorHistogram().isEmpty())
-                        LOG.info("Unexpected Errors:\n" + r.getErrorHistogram());
-
-                    if (!r.getRecordedMessagesHistogram().isEmpty())
-                        LOG.info("Recorded exceptions:\n" + StringUtil.formatMaps(r.getRecordedMessagesHistogram()));
-
-                } else if (LOG.isDebugEnabled()) {
-                    LOG.warn("No bucket size specified");
-                }
-
                 r.writeAllCSVAbsoluteTiming(rs);
+            }
+
+            if (argsLine.hasOption("histograms")) {
+                Results singleHistogram = results.get(0);
+
+                // Combine the histograms into a single histogram in case of a hybrid workload
+                if (results.size() > 1)
+                    singleHistogram = results.get(0).combineHistograms(results.get(1));
+
+                // Write the histograms to the log
+                LOG.info(SINGLE_LINE);
+                if (!singleHistogram.getSuccessHistogram().isEmpty())
+                    LOG.info("Completed Transactions:\n" + singleHistogram.getSuccessHistogram() + "\n");
+
+                if (!singleHistogram.getAbortedHistogram().isEmpty())
+                    LOG.info("Aborted Transactions:\n" + singleHistogram.getAbortedHistogram() + "\n");
+
+                if (!singleHistogram.getRetryHistogram().isEmpty())
+                    LOG.info("Retried Transactions:\n" + singleHistogram.getRetryHistogram() + "\n");
+
+                if (!singleHistogram.getErrorHistogram().isEmpty())
+                    LOG.info("Unexpected Errors:\n" + singleHistogram.getErrorHistogram() + "\n");
+
+                if (!singleHistogram.getRecordedMessagesHistogram().isEmpty())
+                    LOG.info("Recorded exceptions:\n" + StringUtil.formatRecordedMessages(singleHistogram.getRecordedMessagesHistogram()));
             }
 
             ps.close();

@@ -179,4 +179,36 @@ public final class Results {
     public void setTsCounter(int ts_counter) {
         this.ts_counter = ts_counter;
     }
+
+    /**
+     * Combines the histograms in this Results and the histograms
+     * in the other Results.
+     *
+     * @param other the Results to be combined with this.
+     * @return the Results in this with the histograms combined.
+     */
+    public Results combineHistograms(Results other){
+        // Return this instance of the Results if other is null
+        if (other == null)
+            return this;
+
+        // Combine the histograms
+        getSuccessHistogram().putHistogram(other.getSuccessHistogram());
+        getErrorHistogram().putHistogram(other.getErrorHistogram());
+        getAbortedHistogram().putHistogram(other.getAbortedHistogram());
+        getRetryHistogram().putHistogram(other.getRetryHistogram());
+
+        // Combine the histograms within the maps containing recorded messages
+        for (TransactionType key : other.txnRecordedMessages.keySet()){
+            if (txnRecordedMessages.containsKey(key)){
+                // Combine values
+                txnRecordedMessages.get(key).putHistogram(other.txnRecordedMessages.get(key));
+            } else {
+                // Add new entry
+                txnRecordedMessages.put(key, other.txnRecordedMessages.get(key));
+            }
+        }
+
+        return this;
+    }
 }
