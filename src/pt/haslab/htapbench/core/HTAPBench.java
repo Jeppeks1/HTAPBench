@@ -78,6 +78,7 @@ public class HTAPBench {
     private static int intervalMonitor = 0;
     private static double error_margin;
     private static boolean calibrate;
+    private static boolean idealClient;
 
     public static void main(String[] args) throws Exception {
         // Initialize log4j
@@ -127,6 +128,7 @@ public class HTAPBench {
         options.addOption("ts", "tracescript", true, "Script of transactions to execute");
         options.addOption(null, "histograms", false, "Print txn histograms");
         options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
+        options.addOption("ic", "idealClient", false, "Determine the scaling factor based on an ideal client, default false");
 
         // Parse the command line arguments
         CommandLine argsLine = parser.parse(options, args);
@@ -183,6 +185,9 @@ public class HTAPBench {
             intervalMonitor = Integer.parseInt(argsLine.getOptionValue("im"));
         }
 
+        // Check if the idealClient flag has been set, indicating how the workload setup should proceed
+        idealClient = argsLine.hasOption("ic");
+
         // Check if the command line contained overwrite parameter
         boolean overwrite = argsLine.hasOption("overwrite");
 
@@ -201,7 +206,7 @@ public class HTAPBench {
 
         // Initialize the WorkloadSetup according to an ideal client
         WorkloadSetup setup = new WorkloadSetup(xmlConfig);
-        setup.computeWorkloadSetup();
+        setup.computeWorkloadSetup(idealClient);
 
         // Load the configuration for each benchmark in the plugin configuration
         configureBenchmarks(setup, argsLine, configFile, xmlConfig, pluginConfig);
@@ -465,6 +470,7 @@ public class HTAPBench {
             wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", true));
             wrkld.setIntervalMonitor(intervalMonitor);
             wrkld.setErrorMargin(error_margin);
+            wrkld.setIdealClient(idealClient);
 
             // Simulate error in original implementation where calibrate was hardcoded to true
             wrkld.setCalibrate(Mode.CONFIGURE);

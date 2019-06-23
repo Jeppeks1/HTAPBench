@@ -80,6 +80,7 @@ public class WorkloadConfiguration {
 
     private boolean useCSV = true;
     private boolean recordAbortMessages;
+    private boolean idealClient ;
     private boolean calibrate;
 
     private double scaleFactor = 1.0;
@@ -221,6 +222,11 @@ public class WorkloadConfiguration {
     public int getTargetTPS() {
         return this.targetTPS;
     }
+
+    // Ideal client
+    public void setIdealClient(boolean flag) { this.idealClient = flag;}
+
+    public boolean getIdealClient() {return this.idealClient;}
 
     // Database driver
     public void setDBDriver(String driver) {

@@ -69,10 +69,13 @@ public class TPCCWorker extends Worker {
 
     private long thinkTime = 0;
 
+    private boolean idealClient;
+
     public TPCCWorker(int terminalWarehouseID, int terminalDistrictLowerID, int terminalDistrictUpperID,
                       int numWarehouses, HTAPBenchmark benchmarkModule, AtomicInteger ts_counter, Clock clock) {
         super(benchmarkModule, terminalId.getAndIncrement());
 
+        this.idealClient = getWorkloadConfiguration().getIdealClient();
         this.terminalWarehouseID = terminalWarehouseID;
         this.terminalDistrictLowerID = terminalDistrictLowerID;
         this.terminalDistrictUpperID = terminalDistrictUpperID;
@@ -95,8 +98,11 @@ public class TPCCWorker extends Worker {
             proc.run(conn, rand, terminalWarehouseID, numWarehouses, terminalDistrictLowerID, terminalDistrictUpperID, this);
             setThinkTime(thinkTime() + proc.getKeyingTime());
 
-            //waits the required ThinkTime per txn.
-            Thread.sleep(getThinkTime());
+            if (idealClient) {
+                // Wait the required ThinkTime + KeyingTime
+                setThinkTime(thinkTime() + proc.getKeyingTime());
+                Thread.sleep(getThinkTime());
+            }
         } catch (ClassCastException ex) {
             //fail gracefully
             System.err.println("TPC-C: We have been invoked with an INVALID transactionType?!");

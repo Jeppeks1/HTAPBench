@@ -36,8 +36,8 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 
 /**
- * This class computes the correct number of warehouses (#wh) and terminals (#terminals) according
- * to the desired target TPS. To perform this computation, the ideal TPC-C client is considered.
+ * This class computes the correct number of warehouses (#wh) and terminals (#terminals) according to the desired target TPS.
+ * To perform this computation, the ideal TPC-C client is considered
  */
 public class WorkloadSetup {
 
@@ -56,16 +56,31 @@ public class WorkloadSetup {
 
     /**
      * Computes the workload configuration: #warehouses and #terminals according to the target TPS.
+     *
+     * @param idealClient boolean flag indicating whether the setup should proceed
+     *        according to an ideal client.
      */
-    public void computeWorkloadSetup() {
+    public void computeWorkloadSetup(boolean idealClient) {
         // Convert from txn per second to txn per minute and extract the newOrder weight.
         int tpm = targetTPS * 60;
         double newOrder_weight = get_NewOrder_WeightFromXMLConf();
         int target_tpmC = (int) Math.round(tpm * newOrder_weight);
 
-        // Compute the number of terminals and warehouses according to an ideal client
-        this.terminals = (int) Math.ceil(target_tpmC / max_tmpC);
-        this.warehouses = (int) Math.ceil(this.terminals / 10.0);
+        if (idealClient) {
+            // Compute the number of terminals and warehouses according to an ideal client
+            this.terminals = (int) Math.ceil(target_tpmC / max_tmpC);
+            this.warehouses = (int) Math.ceil(this.terminals / 10.0);
+        } else {
+            // Otherwise fix the number of terminals to be equal to the number of warehouses.
+            // The keying and think time has been removed in this case, so one terminal per
+            // warehouse should be enough.
+
+            // The number of warehouses is proportional to the target tpmC and well below
+            // the value calculated in the other case, which becomes infeasible in terms of
+            // data size and number of simultaneous connections to the database.
+            this.warehouses = (int) Math.ceil(target_tpmC / 100.0);
+            this.terminals = this.warehouses;
+        }
     }
 
     /**
