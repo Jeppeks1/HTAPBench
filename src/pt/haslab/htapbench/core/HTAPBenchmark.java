@@ -17,8 +17,6 @@
  */
 package pt.haslab.htapbench.core;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,26 +26,32 @@ import org.apache.log4j.Logger;
 import pt.haslab.htapbench.benchmark.BenchmarkModule;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
-import pt.haslab.htapbench.configuration.loader.HTAPBCSVLoader;
-import pt.haslab.htapbench.configuration.loader.HTAPBLoader;
 import pt.haslab.htapbench.procedures.tpcc.NewOrder;
 import pt.haslab.htapbench.procedures.tpch.Q1;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
-import pt.haslab.htapbench.configuration.loader.Loader;
 
 public class HTAPBenchmark extends BenchmarkModule {
 
     private static final Logger LOG = Logger.getLogger(HTAPBenchmark.class);
     private DensityConsultant density;
     private AtomicInteger ts_counter;
+    private Clock clock;
 
     public HTAPBenchmark(WorkloadConfiguration workConf) {
         super(workConf.getBenchmarkName(), workConf, true);
 
-        this.density = new DensityConsultant(workConf.getTargetTPS());
         this.ts_counter = new AtomicInteger();
+        this.density = new DensityConsultant(workConf.getTargetTPS());
+    }
+
+    /**
+     * Initialize the clock for the execution phase
+     */
+    void initClock() {
+        int warehouses = (int) workConf.getScaleFactor();
+        boolean hybrid = workConf.getHybridWorkload();
+        this.clock = new Clock(density.getDeltaTs(), warehouses, false, workConf.getFilePathCSV());
     }
 
     @Override
@@ -70,12 +74,12 @@ public class HTAPBenchmark extends BenchmarkModule {
      * This method either creates terminals for the OLTP or the OLAP stream.
      */
     @Override
-    protected List<Worker> makeWorkersImpl(String workerType, Clock clock) {
+    protected List<Worker> makeWorkersImpl(String workerType) {
         ArrayList<Worker> workers = new ArrayList<Worker>();
 
         if (workerType.equals("TPCC")) {
             try {
-                List<TPCCWorker> terminals = createTerminals(clock);
+                List<TPCCWorker> terminals = createTerminalsOLTP();
                 workers.addAll(terminals);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -84,7 +88,7 @@ public class HTAPBenchmark extends BenchmarkModule {
 
         if (workerType.equals("TPCH")) {
             try {
-                List<TPCHWorker> terminals = createTerminals(workerType, clock);
+                List<TPCHWorker> terminals = createTerminalsOLAP();
                 workers.addAll(terminals);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -99,22 +103,14 @@ public class HTAPBenchmark extends BenchmarkModule {
      * Returns one OLAP terminal.
      */
     @Override
-    protected List<Worker> makeOLAPWorkerImpl(Clock clock) {
-        ArrayList<Worker> workers = new ArrayList<Worker>();
-
-        try {
-            List<TPCHWorker> terminals = this.createTerminals("TPCH", clock);
-            workers.addAll(terminals);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return workers;
+    protected TPCHWorker makeOneOLAPWorkerImpl() {
+        return new TPCHWorker(this, clock);
     }
 
     /**
      * This methods creates OLTP terminals.
      */
-    private ArrayList<TPCCWorker> createTerminals(Clock clock) {
+    private ArrayList<TPCCWorker> createTerminalsOLTP() {
 
         TPCCWorker[] terminals = new TPCCWorker[workConf.getTerminals()];
 
@@ -180,8 +176,8 @@ public class HTAPBenchmark extends BenchmarkModule {
     /**
      * This method creates OLAP terminals.
      */
-    private ArrayList<TPCHWorker> createTerminals(String workerType, Clock clock) {
-        int numTerminals = workConf.getOLAPTerminals();
+    private ArrayList<TPCHWorker> createTerminalsOLAP() {
+        int numTerminals = workConf.getTerminals();
 
         ArrayList<TPCHWorker> ret = new ArrayList<TPCHWorker>();
         LOG.info(String.format("Creating %d workers for TPC-H", numTerminals));
@@ -193,5 +189,9 @@ public class HTAPBenchmark extends BenchmarkModule {
 
     public DensityConsultant getDensityConsultant(){
         return density;
+    }
+
+    public Clock getClock(){
+        return clock;
     }
 }

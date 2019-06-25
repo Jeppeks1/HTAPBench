@@ -172,9 +172,6 @@ public class OrderStatus extends TPCCProcedure {
 				rs.close();
 		}
 
-		// commit the transaction
-		conn.commit();
-
 		traceLogger(w_id, d_id, o_id, o_carrier_id, orderLines, entrydate, c);
 	}
 

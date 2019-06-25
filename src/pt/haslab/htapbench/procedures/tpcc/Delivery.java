@@ -229,8 +229,6 @@ public class Delivery extends TPCCProcedure {
 				rs.close();
 			}
 		}
-
-		conn.commit();
 	}
 
 	public long getKeyingTime() {

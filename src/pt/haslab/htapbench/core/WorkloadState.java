@@ -150,9 +150,9 @@ public class WorkloadState {
             }
         }
 
-        // Unlimited-rate phases don't use the work queue.
-        if (currentPhase != null && traceReader == null
-                && !currentPhase.isRateLimited()) {
+        // Unlimited-rate phases and TPCHWorkers don't use the work queue.
+        if (currentPhase != null && traceReader == null && !currentPhase.isRateLimited()
+                || worker instanceof TPCHWorker) {
             synchronized (this) {
                 ++workersWorking;
             }

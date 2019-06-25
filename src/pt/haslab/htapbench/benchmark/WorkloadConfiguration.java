@@ -56,10 +56,9 @@ public class WorkloadConfiguration {
     //                         Private variables
     // -------------------------------------------------------------------
 
-    private List<Phase> works = new ArrayList<Phase>();
+    private List<Phase> phases = new ArrayList<Phase>();
     private TransactionTypes transTypes = null;
     private TraceReader traceReader = null;
-    private WorkloadState workloadState;
     private DatabaseType db_type;
 
     private String benchmarkName;
@@ -72,8 +71,6 @@ public class WorkloadConfiguration {
 
     private int isolationMode = Connection.TRANSACTION_SERIALIZABLE;
     private int numberOfPhases = 0;
-    private int intervalMonitor = 0;
-    private int OLAPterminals;
     private int numTxnTypes;
     private int targetTPS;
     private int terminals;
@@ -92,12 +89,14 @@ public class WorkloadConfiguration {
     // -------------------------------------------------------------------
 
     /**
-     * Initiate a new benchmark and workload state.
+     * A utility method that inits the phaseIterator and dialectMap.
      */
-    public WorkloadState initializeState(BenchmarkState benchmarkState) {
-        assert (workloadState == null);
-        workloadState = new WorkloadState(benchmarkState, works, terminals, traceReader);
-        return workloadState;
+    public void init() {
+        try {
+            Class.forName(db_driver);
+        } catch (ClassNotFoundException ex) {
+            throw new RuntimeException("Failed to initialize JDBC driver '" + db_driver + "'", ex);
+        }
     }
 
     /**
@@ -105,43 +104,19 @@ public class WorkloadConfiguration {
      * it for execution by adding it to the list of Phases to be executed.
      */
     public void addWork(int time, int rate, List<String> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
-        works.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
+        phases.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
         numberOfPhases++;
-    }
-
-    /**
-     * A utility method that inits the phaseIterator and dialectMap.
-     */
-    public void init() {
-        try {
-            Class.forName(this.db_driver);
-        } catch (ClassNotFoundException ex) {
-            throw new RuntimeException("Failed to initialize JDBC driver '" + this.db_driver + "'", ex);
-        }
-    }
-
-    // -------------------------------------------------------------------
-    //                            Only getters
-    // -------------------------------------------------------------------
-
-    // WorkloadState
-    public WorkloadState getWorkloadState() {
-        return workloadState;
-    }
-
-    // Number of phases
-    public int getNumberOfPhases() {
-        return this.numberOfPhases;
-    }
-
-    // All recorded phases
-    public List<Phase> getAllPhases() {
-        return works;
     }
 
     // -------------------------------------------------------------------
     //                         Getters and Setters
     // -------------------------------------------------------------------
+
+    // Phases
+
+    public List<Phase> getAllPhases() {
+        return phases;
+    }
 
     // TraceReader
     public TraceReader getTraceReader() {
@@ -261,15 +236,6 @@ public class WorkloadConfiguration {
         this.errorMargin = errorMargin;
     }
 
-    // Interval monitoring
-    public int getIntervalMonitor() {
-        return this.intervalMonitor;
-    }
-
-    public void setIntervalMonitor(int intervalMonitor) {
-        this.intervalMonitor = intervalMonitor;
-    }
-
     // Generate CSV files boolean
     public boolean getUseCSV() {
         return this.useCSV;
@@ -295,15 +261,6 @@ public class WorkloadConfiguration {
 
     public void setTerminals(int terminals) {
         this.terminals = terminals;
-    }
-
-    // Number of OLAP terminals
-    public int getOLAPTerminals() {
-        return OLAPterminals;
-    }
-
-    public void setOLAPTerminals(int terminals) {
-        this.OLAPterminals = terminals;
     }
 
     // Transaction types

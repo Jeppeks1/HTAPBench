@@ -108,8 +108,6 @@ public class TPCCWorker extends Worker {
             return TransactionStatus.ABORTED;
         }
 
-        conn.commit();
-
         try {
             // Wait the required ThinkTime + KeyingTime if requested
             if (idealClient) {

@@ -119,8 +119,6 @@ public class StockLevel extends TPCCProcedure {
 			if (rs != null)
 				rs.close();
 		}
-
-		conn.commit();
 	}
 
 	private void traceLogger(int w_id, int d_id, int threshold, int stock_count) {

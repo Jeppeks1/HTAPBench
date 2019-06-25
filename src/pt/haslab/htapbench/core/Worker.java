@@ -94,7 +94,6 @@ public abstract class Worker implements Runnable {
         this.wrkld = benchmarkModule.getWorkloadConfiguration();
         this.config = benchmarkModule.getConfiguration();
         this.transactionTypes = wrkld.getTransTypes();
-        this.wrkldState = wrkld.getWorkloadState();
         this.benchmarkModule = benchmarkModule;
         this.currStatement = null;
         this.id = id;
@@ -208,6 +207,8 @@ public abstract class Worker implements Runnable {
             }
         } catch (SQLException e) {
             LOG.error("Failed to cancel statement: " + e.getMessage());
+        } catch (NullPointerException ex){
+            LOG.info("Statement already cancelled");
         }
     }
 
@@ -402,9 +403,9 @@ public abstract class Worker implements Runnable {
 
                     // Perform a rollback if the status is not SUCCESS and otherwise commit.
                     if (!(status == SUCCESS))
-                        conn.rollback();
+                        rollback();
                     else
-                        conn.commit();
+                        commit();
 
                     // Determine which logging actions should be taken based on the status.
                     switch (status) {
@@ -465,9 +466,29 @@ public abstract class Worker implements Runnable {
         }
     }
 
-    void initializeState() {
+    void initializeState(WorkloadState state) {
         assert (this.wrkldState == null);
-        this.wrkldState = this.wrkld.getWorkloadState();
+        this.wrkldState = state;
+    }
+
+    /**
+     * Convenience method to committing a transaction in the database.
+     *
+     * @throws SQLException if an exception is thrown while operating on the database.
+     */
+    private void commit() throws SQLException {
+        if (config.getTxnControl())
+            conn.commit();
+    }
+
+    /**
+     * Convenience method to rolling back a transaction in the database.
+     *
+     * @throws SQLException if an exception is thrown while operating on the database.
+     */
+    private void rollback() throws SQLException {
+        if (config.getTxnControl())
+            conn.rollback();
     }
 
     /**

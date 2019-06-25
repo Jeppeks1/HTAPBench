@@ -309,7 +309,6 @@ public class Payment extends TPCCProcedure {
 			payInsertHist.setTimestamp(6, new Timestamp(w.getClock().tick()));
 		}
 		payInsertHist.executeUpdate();
-		conn.commit();
 
 		traceLogger(w_id, w_street_1, w_street_2, w_city, w_state, w_zip, d_id, d_street_1, d_street_2, d_city,
 				d_state, d_zip, c, h_amount, c_data);

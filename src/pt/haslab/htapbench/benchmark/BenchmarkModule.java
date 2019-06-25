@@ -51,8 +51,10 @@ import pt.haslab.htapbench.api.dialects.StatementDialects;
 import pt.haslab.htapbench.catalog.Catalog;
 
 import pt.haslab.htapbench.configuration.Configuration;
+import pt.haslab.htapbench.core.TPCHWorker;
 import pt.haslab.htapbench.core.Worker;
 import pt.haslab.htapbench.core.Clock;
+import pt.haslab.htapbench.core.Workload;
 import pt.haslab.htapbench.util.ClassUtil;
 
 /**
@@ -77,6 +79,11 @@ public abstract class BenchmarkModule {
      * The database-specific configuration instance.
      */
     private Configuration config = null;
+
+    /**
+     * The Workload for the current benchmark.
+     */
+    private Workload workload;
 
     /**
      * Database Catalog
@@ -126,9 +133,9 @@ public abstract class BenchmarkModule {
     //                     Implementing class interface
     // -------------------------------------------------------------------
 
-    protected abstract List<Worker> makeWorkersImpl(String workerType, Clock clock) throws IOException;
+    protected abstract List<Worker> makeWorkersImpl(String workerType);
 
-    protected abstract List<Worker> makeOLAPWorkerImpl(Clock clock) throws IOException;
+    protected abstract TPCHWorker makeOneOLAPWorkerImpl();
 
     /**
      * Each BenchmarkModule needs to implement this method to load a sample
@@ -167,15 +174,15 @@ public abstract class BenchmarkModule {
     /**
      * Calls the implementation for making all the OLTP Workers.
      */
-    public final List<Worker> makeWorkers(String workerType, Clock clock) throws IOException {
-        return (this.makeWorkersImpl(workerType, clock));
+    public final List<Worker> makeWorkers(String workerType) {
+        return (this.makeWorkersImpl(workerType));
     }
 
     /**
      * Calls the implementation for making a OLAP Worker.
      */
-    public final List<Worker> makeOLAPWorker(Clock clock) throws IOException {
-        return (this.makeOLAPWorkerImpl(clock));
+    public final TPCHWorker makeOLAPWorker() {
+        return this.makeOneOLAPWorkerImpl();
     }
 
     // --------------------------------------------------------------------------

@@ -167,7 +167,7 @@ public final class Results {
         if (this.getName().equals("TPCH"))
             out.println("transaction type (index in config file), start time (microseconds),latency (microseconds),worker id(start number), Rows in ResultSet");
 
-        if (this.getName().equals("CLIENT BALANCER"))
+        if (this.getName().equals("ClientBalancer"))
             out.println("transaction type (index in config file), start time (microseconds),latency (microseconds), Current TPS , phase id(index in config file)");
 
         for (Sample s : latencySamples) {

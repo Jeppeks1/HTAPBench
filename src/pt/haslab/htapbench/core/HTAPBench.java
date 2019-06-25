@@ -56,6 +56,9 @@ import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.api.TransactionTypes;
 import pt.haslab.htapbench.configuration.Configuration;
 import pt.haslab.htapbench.configuration.Configuration.Mode;
+import pt.haslab.htapbench.configuration.workload.Analytical;
+import pt.haslab.htapbench.configuration.workload.Hybrid;
+import pt.haslab.htapbench.configuration.workload.Transactional;
 import pt.haslab.htapbench.types.DatabaseType;
 import pt.haslab.htapbench.util.FileUtil;
 import pt.haslab.htapbench.util.ResultUploader;
@@ -74,8 +77,10 @@ public class HTAPBench {
     // A list of BenchmarkModules is used to possibly run a benchmark test with more than one Phase
     private static List<BenchmarkModule> benchList = new ArrayList<BenchmarkModule>();
 
+    // The Workload to be run
+    private static Workload workload;
+
     // Command line arguments that are needed in the WorkloadConfiguration
-    private static int intervalMonitor = 0;
     private static double error_margin;
     private static boolean calibrate;
     private static boolean idealClient;
@@ -111,22 +116,19 @@ public class HTAPBench {
         options.addOption("c", "config", true, "[required] Workload configuration file");
         options.addOption("m", "mode", true, "[required] Mode indicating the benchmark configuration strategy." +
                 " Supported options: " + Arrays.toString(Mode.values()));
+        options.addOption(null, "workload", true, "Which workload to run, default hybrid.");
+        options.addOption(null, "sequence", true, "Performs every mode in sequence before the current mode, default true.");
         options.addOption(null, "overwrite", false, "Resets the database or CSV files in either the configure or generate mode.");
         options.addOption(null, "useCSV", true, "Use CSV files in the generate or populate phase, default true.");
         options.addOption(null, "filePathCSV", true, "Path to the CSV file directory for populating the database, default is ../csv/?tps.");
         options.addOption(null, "runscript", true, "Run an SQL script");
         options.addOption(null, "upload", true, "Upload the result");
-        options.addOption(null, "oltp", true, "Runs only the OLTP stage of the benchmark.");
-        options.addOption(null, "olap", true, "Runs only the OLAP stage of the benchmark.");
         options.addOption("h", "help", false, "Print this help");
         options.addOption("s", "sample", true, "Aggregate the results every 'sample' seconds, default 60 seconds.");
-        options.addOption("im", "interval-monitor", true, "Throughput Monitoring Interval in seconds");
         options.addOption("ss", false, "Verbose Sampling per Transaction");
-        options.addOption("o", "output", true, "Output filename, default is 'res'");
         options.addOption("d", "directory", true, "Base directory for the result files, default is ./results/?tps");
         options.addOption("t", "timestamp", false, "Each result file is prepended with a timestamp for the beginning of the experiment");
         options.addOption("ts", "tracescript", true, "Script of transactions to execute");
-        options.addOption(null, "histograms", false, "Print txn histograms");
         options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
         options.addOption("ic", "idealClient", false, "Determine the scaling factor based on an ideal client, default false");
 
@@ -174,22 +176,14 @@ public class HTAPBench {
             timestampValue = dateFormat.format(new Timestamp(System.currentTimeMillis())) + "_";
         }
 
-        // Get the filename of the output or otherwise use the default filename 'res'
-        String filename = "res";
-        if (argsLine.hasOption("o")) {
-            filename = argsLine.getOptionValue("o");
-        }
-
-        // The Interval Monitor value determines how often the TPM should be written to the console
-        if (argsLine.hasOption("im")) {
-            intervalMonitor = Integer.parseInt(argsLine.getOptionValue("im"));
-        }
-
         // Check if the idealClient flag has been set, indicating how the workload setup should proceed
         idealClient = argsLine.hasOption("ic");
 
         // Check if the command line contained overwrite parameter
         boolean overwrite = argsLine.hasOption("overwrite");
+
+        // Check if the command line contained the sequence parameter
+        boolean sequence = isBooleanOptionSet(argsLine, "sequence");
 
         // Get the standalone script if given
         String script = argsLine.getOptionValue("runscript");
@@ -235,7 +229,7 @@ public class HTAPBench {
         for (BenchmarkModule benchmark : benchList) {
             // Instantiate the appropriate Configuration class and configure the configuration
             Configuration configuration = Configuration.instantiate(benchmark);
-            configuration.prepareDatabase(mode, overwrite);
+            configuration.prepareDatabase(mode, overwrite, sequence);
 
             // Invoke the standalone script if given
             if (isBooleanOptionSet(argsLine, "runscript"))
@@ -245,20 +239,7 @@ public class HTAPBench {
         // Execute Workload
         if (mode == Mode.EXECUTE) {
             // Bombs away!
-            List<Results> results = null;
-
-            try {
-                if (isBooleanOptionSet(argsLine, "oltp")) {
-                    results = runOLTPWorkload();
-                } else if (isBooleanOptionSet(argsLine, "olap")) {
-                    results = runOLAPWorkload();
-                } else {
-                    results = runHybridWorkload();
-                }
-            } catch (Throwable ex) {
-                LOG.error("Unexpected error when running benchmark.", ex);
-                System.exit(1);
-            }
+            List<Results> results = workload.execute();
 
             // -------------------------------------------------------------------
             //                     Collect and print results
@@ -271,7 +252,11 @@ public class HTAPBench {
 
             // Special result uploader
             for (Results r : results) {
-                assert (r != null);
+
+                // Null results occurs when the workload is not hybrid - skip them
+                if (r == null)
+                    continue;
+
                 LOG.info(r.getClass());
                 ResultUploader ru = new ResultUploader(r, xmlConfig, windowSize);
 
@@ -279,7 +264,7 @@ public class HTAPBench {
                 FileUtil.makeDirIfNotExists(outputDirectory);
 
                 // Build the complex path with the requested filename and possibly with the timestamp prepended
-                String baseFile = timestampValue + filename;
+                String baseFile = timestampValue + r.getName().toLowerCase();
 
                 // Increment the filename for new results
                 String nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
@@ -289,24 +274,6 @@ public class HTAPBench {
                 nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".raw"));
                 rs = new PrintStream(new File(nextName));
                 LOG.info("Output Raw data into file: " + nextName);
-
-                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".summary"));
-                PrintStream ss = new PrintStream(new File(nextName));
-                LOG.info("Output summary data into file: " + nextName);
-                ru.writeSummary(ss);
-                ss.close();
-
-                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".db.cnf"));
-                ss = new PrintStream(new File(nextName));
-                LOG.info("Output db config into file: " + nextName);
-                ru.writeDBParameters(ss);
-                ss.close();
-
-                nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".ben.cnf"));
-                ss = new PrintStream(new File(nextName));
-                LOG.info("Output benchmark config into file: " + nextName);
-                ru.writeBenchmarkConf(ss);
-                ss.close();
 
                 if (windowSize != 0) {
                     LOG.info("Grouped into Buckets of " + windowSize + " seconds");
@@ -350,30 +317,29 @@ public class HTAPBench {
                 r.writeAllCSVAbsoluteTiming(rs);
             }
 
-            if (argsLine.hasOption("histograms")) {
-                Results singleHistogram = results.get(0);
+            // The results from the TPCC and TPCH workloads already contain just a single histogram
+            Results singleHistogram = workload instanceof Transactional ? results.get(0) : results.get(1);
 
-                // Combine the histograms into a single histogram in case of a hybrid workload
-                if (results.size() > 1)
-                    singleHistogram = results.get(0).combineHistograms(results.get(1));
+            // Combine the histograms into a single histogram in case of a hybrid workload
+            if (workload instanceof Hybrid)
+                singleHistogram = results.get(0).combineHistograms(results.get(1));
 
-                // Write the histograms to the log
-                LOG.info(SINGLE_LINE);
-                if (!singleHistogram.getSuccessHistogram().isEmpty())
-                    LOG.info("Completed Transactions:\n" + singleHistogram.getSuccessHistogram() + "\n");
+            // Write the histograms to the log
+            LOG.info(SINGLE_LINE);
+            if (!singleHistogram.getSuccessHistogram().isEmpty())
+                LOG.info("Completed Transactions:\n" + singleHistogram.getSuccessHistogram() + "\n");
 
-                if (!singleHistogram.getAbortedHistogram().isEmpty())
-                    LOG.info("Aborted Transactions:\n" + singleHistogram.getAbortedHistogram() + "\n");
+            if (!singleHistogram.getAbortedHistogram().isEmpty())
+                LOG.info("Aborted Transactions:\n" + singleHistogram.getAbortedHistogram() + "\n");
 
-                if (!singleHistogram.getRetryHistogram().isEmpty())
-                    LOG.info("Retried Transactions:\n" + singleHistogram.getRetryHistogram() + "\n");
+            if (!singleHistogram.getRetryHistogram().isEmpty())
+                LOG.info("Retried Transactions:\n" + singleHistogram.getRetryHistogram() + "\n");
 
-                if (!singleHistogram.getErrorHistogram().isEmpty())
-                    LOG.info("Unexpected Errors:\n" + singleHistogram.getErrorHistogram() + "\n");
+            if (!singleHistogram.getErrorHistogram().isEmpty())
+                LOG.info("Unexpected Errors:\n" + singleHistogram.getErrorHistogram() + "\n");
 
-                if (!singleHistogram.getRecordedMessagesHistogram().isEmpty())
-                    LOG.info("Recorded exceptions:\n" + StringUtil.formatRecordedMessages(singleHistogram.getRecordedMessagesHistogram()));
-            }
+            if (!singleHistogram.getRecordedMessagesHistogram().isEmpty())
+                LOG.info("Recorded exceptions:\n" + StringUtil.formatRecordedMessages(singleHistogram.getRecordedMessagesHistogram()));
 
             ps.close();
             rs.close();
@@ -395,6 +361,29 @@ public class HTAPBench {
             default:
                 return Mode.INVALID;
         }
+    }
+
+    private static Workload initializeWorkload(String workloadString, HTAPBenchmark bench) {
+        Workload workload;
+        switch (workloadString) {
+            case "oltp":
+            case "tpcc":
+                workload = new Transactional(bench);
+                break;
+            case "olap":
+            case "tpch":
+                workload = new Analytical(bench);
+                break;
+            case "htap":
+            case "hybrid":
+                workload = new Hybrid(bench);
+                break;
+            default:
+                throw new RuntimeException("Workload " + workloadString + " not recognized as a valid option.");
+        }
+
+        // Return the Workload instance
+        return workload;
     }
 
     private static List<String> get_weights(String plugin, SubnodeConfiguration work) {
@@ -470,9 +459,12 @@ public class HTAPBench {
             wrkld.setDBPassword(xmlConfig.getString("password"));
             wrkld.setIsolationMode(xmlConfig.getString("isolation" + pluginTest, isolationMode));
             wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", true));
-            wrkld.setIntervalMonitor(intervalMonitor);
             wrkld.setErrorMargin(error_margin);
             wrkld.setIdealClient(idealClient);
+            wrkld.setScaleFactor(setup.getWarehouses());
+            wrkld.setTerminals(setup.getTerminals());
+            wrkld.setTargetTPS(setup.getTargetTPS());
+            wrkld.setFilePathCSV(filePathCSV);
 
             // Simulate error in original implementation where calibrate was hardcoded to true
             wrkld.setCalibrate(Mode.CONFIGURE);
@@ -493,14 +485,13 @@ public class HTAPBench {
                 setup.setWarehouses(xmlConfig.getInt("warehouses"));
                 wrkld.setScaleFactor(xmlConfig.getDouble("warehouses"));
                 terminals = (int) xmlConfig.getDouble("OLAP_workers");
-                wrkld.setOLAPTerminals(terminals);
+                wrkld.setTerminals(terminals);
                 wrkld.setHybridWorkload(false);
                 rateLimited = false;
             } else {
                 // HTAP workload
                 wrkld.setTerminals(setup.getTerminals());
                 terminals = setup.getTerminals();
-                wrkld.setOLAPTerminals(1);
                 wrkld.setScaleFactor(setup.getWarehouses());
                 wrkld.setTargetTPS(setup.getTargetTPS());
                 wrkld.setHybridWorkload(true);
@@ -518,8 +509,8 @@ public class HTAPBench {
             //                     Initialize the BenchmarkModule
             // -------------------------------------------------------------------
 
-            // Create the BenchmarkModule
-            BenchmarkModule bench = new HTAPBenchmark(wrkld);
+            // Create the benchmark for this workload configuration
+            HTAPBenchmark bench = new HTAPBenchmark(wrkld);
 
             // Get the classname associated with the current plugin
             String classname = pluginConfig.getString("/plugin[@name='" + plugin + "']");
@@ -635,14 +626,11 @@ public class HTAPBench {
             //                       More workload configuration
             // -------------------------------------------------------------------
 
-            WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-            workConf.setScaleFactor(setup.getWarehouses());
-            workConf.setTerminals(setup.getTerminals());
-            workConf.setTargetTPS(setup.getTargetTPS());
-            workConf.setFilePathCSV(filePathCSV);
-            bench.setWorkloadConfiguration(workConf);
-
             benchList.add(bench);
+
+            // Initialize the Workload
+            String workloadName = argsLine.getOptionValue("workload", "hybrid");
+            workload = initializeWorkload(workloadName, bench);
 
             // Determine the number of entries in the /works/work section of the configuration
             int size = xmlConfig.configurationsAt("/works/work").size();
@@ -766,207 +754,6 @@ public class HTAPBench {
 
         assert (!benchList.isEmpty());
         assert (benchList.get(0) != null);
-    }
-
-    private static List<Results> runHybridWorkload() throws IOException, InterruptedException {
-        // ----------------------------------------
-        //              Initialize Workers
-        // ----------------------------------------
-
-        BenchmarkModule bench = benchList.get(0);
-        List<Worker> oltp_workers = new ArrayList<Worker>();
-        List<Worker> olap_workers = new ArrayList<Worker>();
-
-        WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
-
-        List<Results> results = new ArrayList<Results>();
-
-        // ----------------------------------------
-        //              Initialize Client Balancer
-        // ----------------------------------------
-
-        LOG.info("Creating CLIENT BALANCER");
-        ClientBalancer clientBalancer = new ClientBalancer(bench, oltp_workers, olap_workers, clock);
-        Thread client_balancer = new Thread(clientBalancer);
-        client_balancer.start();
-
-        // ----------------------------------------
-        //              OLTP Workers
-        // ----------------------------------------
-
-        oltp_workers.addAll(bench.makeWorkers("TPCC", clock));
-
-        LOG.info("Created " + bench.getWorkloadConfiguration().getTerminals() + " virtual terminals...");
-        LOG.info(String.format("Launching the %s Benchmark with %s Phases...",
-                bench.getBenchmarkName(), bench.getWorkloadConfiguration().getNumberOfPhases()));
-        LOG.info("Started OLTP execution with " + bench.getWorkloadConfiguration().getTerminals() + " terminals.");
-        LOG.info("Target TPS: " + bench.getWorkloadConfiguration().getTargetTPS() + " TPS");
-
-        OLTPWorkerThread oltp_runnable = new OLTPWorkerThread(oltp_workers, workConf);
-        Thread oltp = new Thread(oltp_runnable);
-        oltp.start();
-
-        // ----------------------------------------
-        //              OLAP Workers
-        // ----------------------------------------
-
-        OLAPWorkerThread olap_runnable = new OLAPWorkerThread(olap_workers, workConf);
-        Thread olap = new Thread(olap_runnable);
-        olap.start();
-
-        // ----------------------------------------
-        //              Shutdown
-        // ----------------------------------------
-
-        oltp.join();
-        olap.join();
-        clientBalancer.terminate();
-        client_balancer.interrupt();
-
-        // ----------------------------------------
-        //      Wait until results are available
-        // ----------------------------------------
-
-        Results tpcc = oltp_runnable.getResults();
-        Results tpch = olap_runnable.getResults();
-
-        boolean proceed = false;
-        while (!proceed) {
-            if (tpcc != null && tpch != null) {
-                proceed = true;
-            } else {
-                LOG.info("[HTAPB Thread]: Still waiting for results from OLTP and OLAP workers. Going to sleep for 1 minute...");
-                Thread.sleep(60000);
-
-                tpcc = oltp_runnable.getResults();
-                tpch = olap_runnable.getResults();
-            }
-        }
-
-        Results balancer = clientBalancer.getResults();
-
-        results.add(tpcc);
-        results.add(tpch);
-        results.add(balancer);
-
-        return results;
-    }
-
-    private static List<Results> runOLTPWorkload() throws IOException, InterruptedException {
-        // ----------------------------------------
-        //              Initialize Workers
-        // ----------------------------------------
-
-        BenchmarkModule bench = benchList.get(0);
-        List<Worker> oltp_workers = new ArrayList<Worker>();
-
-        WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
-
-        List<Results> results = new ArrayList<Results>();
-
-        // ----------------------------------------
-        //              OLTP Workers
-        // ----------------------------------------
-
-        oltp_workers.addAll(bench.makeWorkers("TPCC", clock));
-
-        LOG.info("Created " + bench.getWorkloadConfiguration().getTerminals() + " virtual terminals...");
-        LOG.info(String.format("Launching the %s Benchmark with %s Phases...",
-                bench.getBenchmarkName(), bench.getWorkloadConfiguration().getNumberOfPhases()));
-        LOG.info("Started OLTP execution with " + bench.getWorkloadConfiguration().getTerminals() + " terminals.");
-        LOG.info("Target TPS: " + bench.getWorkloadConfiguration().getTargetTPS() + " TPS");
-
-        OLTPWorkerThread oltp_runnable = new OLTPWorkerThread(oltp_workers, workConf);
-        Thread oltp = new Thread(oltp_runnable);
-        oltp.start();
-
-        // ----------------------------------------
-        //              Shutdown
-        // ----------------------------------------
-
-        oltp.join();
-
-        // ----------------------------------------
-        //      Wait until results are available
-        // ----------------------------------------
-
-        Results tpcc = oltp_runnable.getResults();
-
-        boolean proceed = false;
-        while (!proceed) {
-            if (tpcc != null) {
-                proceed = true;
-            } else {
-                LOG.info("[HTAPB Thread]: Still waiting for results from OLTP workers. Going to sleep for 1 minute...");
-                Thread.sleep(60000);
-
-                tpcc = oltp_runnable.getResults();
-            }
-        }
-
-        results.add(tpcc);
-
-        return results;
-    }
-
-    private static List<Results> runOLAPWorkload() throws IOException, InterruptedException {
-        // ----------------------------------------
-        //              Initialize Workers
-        // ----------------------------------------
-
-        BenchmarkModule bench = benchList.get(0);
-        List<Worker> olap_workers = new ArrayList<Worker>();
-
-        WorkloadConfiguration workConf = bench.getWorkloadConfiguration();
-        Clock clock = new Clock(workConf.getTargetTPS(), (int) workConf.getScaleFactor(), false);
-
-        List<Results> results = new ArrayList<Results>();
-
-        // ----------------------------------------
-        //              OLAP Workers
-        // ----------------------------------------
-
-        olap_workers.addAll(bench.makeOLAPWorker(clock));
-
-        LOG.info("Created " + bench.getWorkloadConfiguration().getOLAPTerminals() + " virtual terminals...");
-        LOG.info(String.format("Launching the %s Benchmark with %s Phases...",
-                bench.getBenchmarkName(), bench.getWorkloadConfiguration().getNumberOfPhases()));
-        LOG.info("Started OLAP execution with " + bench.getWorkloadConfiguration().getOLAPTerminals() + " terminals.");
-
-        OLAPWorkerThread olap_runnable = new OLAPWorkerThread(olap_workers, workConf);
-        Thread olap = new Thread(olap_runnable);
-        olap.start();
-
-        // ----------------------------------------
-        //              Shutdown
-        // ----------------------------------------
-
-        olap.join();
-
-        // ----------------------------------------
-        //      Wait until results are available
-        // ----------------------------------------
-
-        Results tpch = olap_runnable.getResults();
-
-        boolean proceed = false;
-        while (!proceed) {
-
-            if (tpch != null) {
-                proceed = true;
-            } else {
-                LOG.info("[HTAPB Thread]: Still waiting for results from OLAP workers. Going to sleep for 1 minute...");
-                Thread.sleep(60000);
-
-                tpch = olap_runnable.getResults();
-            }
-        }
-
-        results.add(tpch);
-
-        return results;
     }
 
     private static void printUsage(Options options) {

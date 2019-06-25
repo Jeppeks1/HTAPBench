@@ -19,15 +19,10 @@ package pt.haslab.htapbench.core;
 
 import pt.haslab.htapbench.benchmark.*;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Implements the ClientBalacer which is responsible for deciding if more OLAP streams should be added to system.
@@ -38,14 +33,13 @@ public class ClientBalancer implements Runnable {
 
     private static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(ClientBalancer.class);
 
-    private final BenchmarkModule benchmarkModule;
+    private HTAPBenchmark bench;
 
     private ArrayList<LatencyRecord.Sample> samples = new ArrayList<LatencyRecord.Sample>();
-    private List<Worker> workersOLTP;
-    private List<Worker> workersOLAP;
     private LatencyRecord latencies;
+    private List<Worker> workers;
+    private Workload workload;
     private Results results;
-    private Clock clock;
 
     // Sampling rate;
     private final int deltaT = 60;
@@ -62,17 +56,16 @@ public class ClientBalancer implements Runnable {
     // Interval requests used by the monitor
     private AtomicInteger intervalRequests = new AtomicInteger(0);
 
-    ClientBalancer(BenchmarkModule benchModule, List<Worker> workersOLTP, List<Worker> workersOLAP, Clock clock) {
-        WorkloadConfiguration wrkld = benchModule.getWorkloadConfiguration();
+    ClientBalancer(HTAPBenchmark bench, List<Worker> workers, Workload workload) {
+        WorkloadConfiguration wrkld = bench.getWorkloadConfiguration();
 
         this.latencies = new LatencyRecord(System.nanoTime());
-        this.projected_TPM = wrkld.getTargetTPS() * this.deltaT;
+        this.projected_TPM = wrkld.getTargetTPS() * deltaT;
         this.error_margin = wrkld.getErrorMargin();
 
-        this.benchmarkModule = benchModule;
-        this.workersOLTP = workersOLTP;
-        this.workersOLAP = workersOLAP;
-        this.clock = clock;
+        this.workload = workload;
+        this.workers = workers;
+        this.bench = bench;
     }
 
     /**
@@ -80,9 +73,11 @@ public class ClientBalancer implements Runnable {
      */
     private void getTPM() {
         int txn_count = 0;
-        for (Worker w : workersOLTP) {
-            txn_count = txn_count + w.getTxncount();
+        for (Worker w : workers) {
+            if (w instanceof TPCCWorker)
+                txn_count = txn_count + w.getTxncount();
         }
+
         this.TPM = txn_count;
     }
 
@@ -90,7 +85,7 @@ public class ClientBalancer implements Runnable {
     public void run() {
         long measureStart = System.nanoTime();
         int requests = 0;
-        this.latencies.addLatency(workersOLAP.size(), 0, 0, this.TPM, 0);
+        latencies.addLatency(0, 0, 0, TPM, 0);
         intervalRequests.incrementAndGet();
 
         try {
@@ -100,26 +95,24 @@ public class ClientBalancer implements Runnable {
                 //Reads and computes the current observed TPM.
                 getTPM();
 
-                double error = this.projected_TPM - this.TPM;
-                this.integral = this.integral + error / this.deltaT;
+                double error = projected_TPM - TPM;
+                integral = integral + error / deltaT;
 
                 double ki = 0.03;
                 double kp = 0.4;
-                double output = kp * error + ki * this.integral;
+                double output = kp * error + ki * integral;
 
                 /*
                  * Take decision. If the the total targetTPS is within the
                  * error margin --> Launch another OLAP Stream.
                  */
-                LOG.info("TPM: " + this.TPM);
+                LOG.info("TPS: " + TPM/60);
                 LOG.info("output: " + output);
                 LOG.info("error: " + error);
 
-                if (this.olapStreams == 0 || (!saturated && output < this.error_margin * this.projected_TPM)) {
-                    this.olapStreams++;
-
-                    this.workersOLAP.addAll(benchmarkModule.makeOLAPWorker(clock));
-                    LOG.info("ClientBalancer: Going to lauch 1 OLAP stream. Total OLAP STreams: " + workersOLAP.size());
+                if (olapStreams == 0 || (!saturated && output < error_margin * projected_TPM)) {
+                    workload.addTPCHWorker(olapStreams);
+                    LOG.info("ClientBalancer: Going to lauch 1 OLAP stream. Total OLAP Streams: " + (++olapStreams));
                 } else {
                     saturated = true;
                     LOG.info("***************************************************************************************************");
@@ -128,14 +121,12 @@ public class ClientBalancer implements Runnable {
                 }
 
                 LOG.info("***************************************************************************************************");
-                LOG.info("                          #ACTIVE OLAP STREAMS: " + workersOLAP.size());
+                LOG.info("                          #ACTIVE OLAP STREAMS: " + olapStreams);
                 LOG.info("***************************************************************************************************");
 
-                this.latencies.addLatency(workersOLAP.size(), 0, 0, this.TPM, 0);
+                this.latencies.addLatency(olapStreams, 0, 0, TPM, 0);
                 intervalRequests.incrementAndGet();
             }
-        } catch (IOException ex) {
-            Logger.getLogger(ClientBalancer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (InterruptedException ex) {
             if (!terminate)
                 LOG.warn("ClientBalancer received an unexpected InterruptedException.");
@@ -158,16 +149,20 @@ public class ClientBalancer implements Runnable {
         DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
 
         results = new Results(measureEnd - measureStart, requests, stats, samples);
-        results.setName("CLIENT BALANCER");
+        results.setName("ClientBalancer");
 
         processedResults = true;
 
         LOG.info("[ClientBalancer] Finished collecting results ..");
     }
 
-    public Results getResults() {
+    Results getResults(boolean isHybrid) {
+        // There are no results to be had if the workload is not Hybrid
+        if (!isHybrid)
+            return null;
+
         // Allow the interrupted thread some time to process the results
-        while (!processedResults){
+        while (!processedResults) {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -178,8 +173,13 @@ public class ClientBalancer implements Runnable {
         return results;
     }
 
-    void terminate() {
-        this.terminate = true;
+    /**
+     * Sets the terminate flag before calling the interrupt method of
+     * the ClientBalancer thread. This is used to indicate if its an
+     * expected shutdown or not.
+     */
+    void terminate(){
+        terminate = true;
     }
 
     private Iterable<LatencyRecord.Sample> getLatencyRecords() {

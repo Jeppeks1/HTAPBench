@@ -72,7 +72,6 @@ public abstract class Configuration {
             // Create a connection and create a statement
             conn = benchModule.makeConnection();
             stmt = conn.createStatement();
-            LOG.info("Established a connection to the " + this + " server");
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Error when trying to connect to the %s server", this), ex);
         }
@@ -82,6 +81,10 @@ public abstract class Configuration {
     }
 
     private void checkDataExists() {
+        // If the flag has already been set, we do not have to check again
+        if (containsData)
+            return;
+
         try {
             // Use the ORDER table to determine if the database is empty
             ResultSet rs = stmt.executeQuery("select count(*) from " + HTAPBConstants.TABLENAME_ORDER);
@@ -516,9 +519,10 @@ public abstract class Configuration {
      *                  the current database or CSV data, effectively dropping and
      *                  re-populating the database in order to prepare for the next
      *                  benchmark and begin the test from scratch.
+     * @param sequence if {@code false}, only the given input mode will be executed.
      * @throws SQLException if an exception occurs when operating on the database
      */
-    public void prepareDatabase(Mode modeInput, boolean overwrite) throws SQLException {
+    public void prepareDatabase(Mode modeInput, boolean overwrite, boolean sequence) throws SQLException {
         // Set the mode variable so that other methods can access it
         mode = modeInput;
 
@@ -526,23 +530,32 @@ public abstract class Configuration {
             // Create a connection to the database
             createConnection();
 
-            // The 'Configure' step should always be the first step
-            configureDatabase(overwrite);
+            if (sequence){
+                // The 'Configure' step should always be the first step
+                configureDatabase(overwrite);
 
-            // Fall-through until we reach the given mode
-            if (mode == CONFIGURE)
-                return;
+                // Fall-through until we reach the given mode
+                if (mode == CONFIGURE)
+                    return;
 
-            // Generate the data files if necessary
-            generateCSVData(overwrite);
+                // Generate the data files if necessary
+                generateCSVData(overwrite);
 
-            // Fall-through until we reach the given mode
-            if (mode == GENERATE)
-                return;
+                // Fall-through until we reach the given mode
+                if (mode == GENERATE)
+                    return;
 
-            // Populate the database if required - the database is ready for
-            // testing after this method has been invoked.
-            populateDatabase(overwrite);
+                // Populate the database if required - the database is ready for
+                // testing after this method has been invoked.
+                populateDatabase(overwrite);
+            } else {
+                if (mode == CONFIGURE)
+                    configureDatabase(overwrite);
+                else if (mode == GENERATE)
+                    generateCSVData(overwrite);
+                else if (mode == POPULATE)
+                    populateDatabase(overwrite);
+            }
 
             // Check if everything went well before executing
             if (mode == EXECUTE)
@@ -580,7 +593,7 @@ public abstract class Configuration {
             default:
                 throw new UnsupportedOperationException("Support for automatic configuration of database " + dbtype + " not implemented. " +
                         "Please prepare the database configuration manually through the command line and " +
-                        "then execute the benchmark.");
+                        "then execute the benchmark with sequence = false.");
         }
     }
 

@@ -135,25 +135,4 @@ public abstract class Loader {
     public void setNullConstant(String nullConstant){
         this.nullConstant = nullConstant;
     }
-
-    /**
-     * Method that can be overridden to specifically unload the tables of the
-     * database. In the default implementation it checks for tables from the
-     * catalog to delete them using SQL. Any subclass can inject custom behavior
-     * here.
-     *
-     * @param catalog The catalog containing all loaded tables
-     * @throws SQLException if a SQL related exception occurs
-     */
-    public void unload(Catalog catalog) throws SQLException {
-        conn.setAutoCommit(false);
-        conn.setTransactionIsolation(workConf.getIsolationMode());
-        Statement st = conn.createStatement();
-        for (Table catalog_tbl : catalog.getTables()) {
-            LOG.debug(String.format("Deleting data from %s.%s", workConf.getDBName(), catalog_tbl.getName()));
-            String sql = "DELETE FROM " + catalog_tbl.getEscapedName();
-            st.execute(sql);
-        } // FOR
-        conn.commit();
-    }
 }
