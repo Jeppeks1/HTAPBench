@@ -41,12 +41,11 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q9 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
 
-        String st1 = random.generateRandomCharacter();
-        String st2 = random.generateRandomCharacter();
+        Character st1 = random.generateRandomCharacter();
+        Character st2 = random.generateRandomCharacter();
 
-        String data = st1.toUpperCase() + st2.toUpperCase();
+        String data = st1.toString().toUpperCase() + st2.toString().toUpperCase();
         data = "%" + data;
 
         String query = "SELECT n_name, "

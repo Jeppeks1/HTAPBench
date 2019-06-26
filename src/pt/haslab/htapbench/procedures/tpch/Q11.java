@@ -42,7 +42,7 @@ import java.text.DecimalFormat;
 public class Q11 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){
-        RandomParameters random = new RandomParameters("uniform");
+
         String nation1 = random.getRandomNation();
 
         double frac = 0.0001 / wrklConf.getScaleFactor();

@@ -41,7 +41,6 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q2 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
 
         String region = random.getRandomRegion();
         region = region.substring(0, region.length() - 1) + "%";

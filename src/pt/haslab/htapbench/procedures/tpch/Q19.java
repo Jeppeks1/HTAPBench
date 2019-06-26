@@ -41,7 +41,6 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q19 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
 
         int price1 = RandomParameters.randBetween(1, 10);
         int price2 = RandomParameters.randBetween(10, 20);

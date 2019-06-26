@@ -41,7 +41,7 @@ import java.sql.Timestamp;
 public class Q5 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
-        RandomParameters random = new RandomParameters("uniform");
+
         String region = random.getRandomRegion();
 
         int year = RandomParameters.randBetween(1993, 1997);

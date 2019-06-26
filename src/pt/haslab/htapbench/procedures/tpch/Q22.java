@@ -40,7 +40,6 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q22 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
 
         String code1 = random.getRandomPhoneCountryCode();
         String code2 = random.getRandomPhoneCountryCode();

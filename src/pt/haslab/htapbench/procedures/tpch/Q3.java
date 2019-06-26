@@ -42,14 +42,13 @@ import java.sql.Timestamp;
 public class Q3 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
-        RandomParameters random = new RandomParameters("uniform");
 
         int day = RandomParameters.randBetween(1, 31);
         long date = RandomParameters.convertDateToLong(1995, 3, day);
 
         Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(date));
 
-        String state = random.generateRandomCharacter();
+        String state = random.generateRandomCharacter().toString();
         state = state.toUpperCase();
         state = state + "%";
 

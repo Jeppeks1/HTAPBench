@@ -47,6 +47,7 @@ import org.apache.log4j.Logger;
 
 import pt.haslab.htapbench.api.dialects.StatementDialects;
 import pt.haslab.htapbench.jdbc.AutoIncrementPreparedStatement;
+import pt.haslab.htapbench.random.RandomParameters;
 import pt.haslab.htapbench.types.DatabaseType;
 
 public abstract class Procedure {
@@ -59,6 +60,7 @@ public abstract class Procedure {
 
     private Map<String, SQLStmt> name_stmt_xref;
     private DatabaseType dbType;
+    protected RandomParameters random;
 
     /**
      * Constructor
@@ -72,7 +74,7 @@ public abstract class Procedure {
      * the constructor, otherwise we can't get access to all of our SQLStmts.
      */
     @SuppressWarnings("unchecked")
-    public final <T extends Procedure> T initialize(DatabaseType dbType) {
+    public final <T extends Procedure> T initialize(DatabaseType dbType, int warehouses) {
         this.name_stmt_xref = Procedure.getStatements(this);
         this.dbType = dbType;
 
@@ -80,6 +82,9 @@ public abstract class Procedure {
         for (Entry<String, SQLStmt> e : this.name_stmt_xref.entrySet()) {
             this.stmt_name_xref.put(e.getValue(), e.getKey());
         }
+
+        // Initialize the RandomParameters variable
+        random = new RandomParameters("uniform", warehouses);
 
         return ((T) this);
     }

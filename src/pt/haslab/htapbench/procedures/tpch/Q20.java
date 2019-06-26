@@ -42,7 +42,6 @@ import java.sql.Timestamp;
 public class Q20 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
-        RandomParameters random = new RandomParameters("uniform");
 
         String nation = random.getRandomNation();
         String char1 = random.generateRandomCharacter() + "%";

@@ -41,7 +41,7 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q21 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
+
         String nation = random.getRandomNation();
 
         String query = "SELECT su_name, "

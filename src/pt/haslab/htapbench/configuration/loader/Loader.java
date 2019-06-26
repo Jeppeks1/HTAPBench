@@ -50,6 +50,7 @@ import pt.haslab.htapbench.catalog.Table;
 import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.core.HTAPBenchmark;
+import pt.haslab.htapbench.random.RandomParameters;
 
 import static pt.haslab.htapbench.benchmark.HTAPBConstants.*;
 
@@ -61,6 +62,7 @@ public abstract class Loader {
 
     final WorkloadConfiguration workConf;
     protected final BenchmarkModule benchmark;
+    protected final RandomParameters randomParam;
     protected final Clock clock;
     protected Connection conn;
     protected String nullConstant = "\\N";
@@ -111,6 +113,9 @@ public abstract class Loader {
         long deltaTS = benchmark.getDensityConsultant().getDeltaTs();
         String csvFilePath = workConf.getFilePathCSV();
         clock = new Clock(deltaTS, (int) scaleFactor, true, csvFilePath);
+
+        // Initialize the RandomParameter
+        this.randomParam = new RandomParameters("uniform", (int) scaleFactor);
     }
 
     /**

@@ -41,7 +41,7 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q17 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
+
         String st1 = "%" + random.generateRandomCharacter();
 
         String query = "SELECT SUM(ol_amount) / 2.0 AS avg_yearly "

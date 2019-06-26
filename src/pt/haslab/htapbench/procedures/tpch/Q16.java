@@ -41,10 +41,9 @@ import pt.haslab.htapbench.random.RandomParameters;
 public class Q16 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        RandomParameters random = new RandomParameters("uniform");
 
-        String st1 = random.generateRandomCharacter();
-        String st2 = random.generateRandomCharacter();
+        String st1 = random.generateRandomCharacter().toString();
+        String st2 = random.generateRandomCharacter().toString();
 
         String data = st1 + st2 + "%";
         String su_comment = "%" + random.getRandomSuComment() + "%";
