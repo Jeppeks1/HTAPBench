@@ -65,7 +65,7 @@ public abstract class Loader {
     protected final RandomParameters randomParam;
     protected final Clock clock;
     protected Connection conn;
-    protected String nullConstant = "\\N";
+    String nullConstant;
 
     final boolean generateCsvFiles;
     final boolean calibrate;

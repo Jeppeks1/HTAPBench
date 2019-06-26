@@ -20,8 +20,6 @@ package pt.haslab.htapbench.configuration.loader;
 import org.apache.log4j.Logger;
 import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
 import pt.haslab.htapbench.configuration.loader.pojo.*;
-import pt.haslab.htapbench.core.Clock;
-import pt.haslab.htapbench.core.DensityConsultant;
 import pt.haslab.htapbench.core.HTAPBenchmark;
 import pt.haslab.htapbench.random.RandomGenerator;
 import pt.haslab.htapbench.util.TPCCUtil;
@@ -383,38 +381,82 @@ public class HTAPBCSVLoader extends Loader {
 
     } // end loadDist()
 
-    private int loadCust(int whseKount, int distWhseKount, int custDistKount) {
+    /**
+     * This method combines the semantics of loadCust and loadOrder into a single
+     * method, so that the generated timestamps can be split evenly across the ORDER
+     * and CUSTOMER tables. Previously, two separate method would increment the clock
+     * independently, so that the earliest half of all timestamps ended up in one table
+     * and the other half in the other table.
+     *
+     * The ORDER_LINE table depends on ORDER, so all the ORDER related tables are included
+     * as well.
+     */
+    private int loadTimestamped(int whseKount, int distWhseKount, int custDistKount) {
 
+        int baseRowCount, OrderLineCount, NewOrderCount, total;
         int k = 0;
-        int t;
 
         Customer customer = new Customer();
         History history = new History();
+        Oorder oorder = new Oorder();
+        NewOrder new_order = new NewOrder();
+        OrderLine order_line = new OrderLine();
+
+        PrintWriter outCust = null;
         PrintWriter outHist = null;
-        PrintWriter outcost = null;
+        PrintWriter outOrder = null;
+        PrintWriter outNewOrder = null;
+        PrintWriter outOrderLine = null;
 
         try {
-            now = new java.util.Date();
-
-            outcost = new PrintWriter(new FileOutputStream(customerPath));
-            outHist = new PrintWriter(new FileOutputStream(historyPath));
-
-            t = (whseKount * distWhseKount * custDistKount * 2);
-
+            LOG.debug("\nWriting Order file to: " + orderPath);
+            LOG.debug("\nWriting New Order file to: " + newOrderPath);
+            LOG.debug("\nWriting Order Line file to: " + orderLinePath);
             LOG.debug("\nWriting Customer file to: " + customerPath);
             LOG.debug("\nWriting Customer History file to: " + historyPath);
-            LOG.debug("\nStart Cust-Hist Load for " + t + " Cust-Hists @ " + now + " ...");
+
+            outOrder = new PrintWriter(new FileOutputStream(orderPath));
+            outNewOrder = new PrintWriter(new FileOutputStream(newOrderPath));
+            outOrderLine = new PrintWriter(new FileOutputStream(orderLinePath));
+            outCust = new PrintWriter(new FileOutputStream(customerPath));
+            outHist = new PrintWriter(new FileOutputStream(historyPath));
+
+            now = new Date();
+
+            baseRowCount = whseKount * distWhseKount * custDistKount;
+            OrderLineCount = baseRowCount * 11; // Average of randomly generated value in [5,15], rounded up
+            NewOrderCount = baseRowCount / 3; // A third of all NewOrder rows populated from ORDER
+            total = baseRowCount * 3 + OrderLineCount + NewOrderCount; // BaseCount * 3: ORDER, CUSTOMER, HISTORY
+
+            LOG.debug("\nStart timestamped Load for approx. " + total + " timestamped @ " + now + " ...");
 
             for (int w = 1; w <= whseKount; w++) {
 
                 for (int d = 1; d <= distWhseKount; d++) {
 
+                    // TPC-C 4.3.3.1: o_c_id must be a permutation of [1, 3000]
+                    int[] c_ids = new int[custDistKount];
+                    for (int i = 0; i < custDistKount; ++i) {
+                        c_ids[i] = i + 1;
+                    }
+
+                    // Collections.shuffle exists, but there is no Arrays.shuffle
+                    for (int i = 0; i < c_ids.length - 1; ++i) {
+                        int remaining = c_ids.length - i - 1;
+                        int swapIndex = gen.nextInt(remaining) + i + 1;
+                        assert i < swapIndex;
+                        int temp = c_ids[swapIndex];
+                        c_ids[swapIndex] = c_ids[i];
+                        c_ids[i] = temp;
+                    }
+
                     for (int c = 1; c <= custDistKount; c++) {
 
-                        //**************************************************
-                        //TIMESTAMP DENSITY
-                        Timestamp sysdate = new java.sql.Timestamp(clock.tick());
-                        //**************************************************
+                        // ***********************************************
+                        //                Start of CUSTOMER population
+                        // ***********************************************
+
+                        Timestamp sysdate = new Timestamp(clock.tick());
 
                         if (calibrate) {
                             counter.incrementAndGet();
@@ -423,9 +465,22 @@ public class HTAPBCSVLoader extends Loader {
                         customer.c_id = c;
                         customer.c_d_id = d;
                         customer.c_w_id = w;
-
-                        // discount is random between [0.0000 ... 0.5000]
-                        customer.c_discount = (TPCCUtil.randomNumber(1, 5000, gen) / 1000.0);
+                        customer.c_discount = (TPCCUtil.randomNumber(0, 500, gen) / 1000.0); // [0.0000 ... 0.5000]
+                        customer.c_first = TPCCUtil.randomStr(TPCCUtil.randomNumber(8, 16, gen));
+                        customer.c_credit_lim = 50000;
+                        customer.c_balance = -10;
+                        customer.c_ytd_payment = 10;
+                        customer.c_payment_cnt = 1;
+                        customer.c_delivery_cnt = 0;
+                        customer.c_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                        customer.c_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                        customer.c_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                        customer.c_state = TPCCUtil.randomStr(3).toUpperCase();
+                        customer.c_zip = TPCCUtil.randomNStr(4) + "11111"; // TPC-C 4.3.2.7: 4 random digits + "11111"
+                        customer.c_phone = TPCCUtil.randomNStr(16);
+                        customer.c_since = sysdate;
+                        customer.c_middle = "OE";
+                        customer.c_data = TPCCUtil.randomStr(TPCCUtil.randomNumber(300, 500, gen));
 
                         if (TPCCUtil.randomNumber(1, 100, gen) <= 10) {
                             customer.c_credit = "BC"; // 10% Bad Credit
@@ -437,37 +492,7 @@ public class HTAPBCSVLoader extends Loader {
                         } else {
                             customer.c_last = TPCCUtil.getNonUniformRandomLastNameForLoad(gen);
                         }
-                        customer.c_first = TPCCUtil.randomStr(TPCCUtil.randomNumber(8, 16, gen));
-                        customer.c_credit_lim = 50000;
 
-                        customer.c_balance = -10;
-                        customer.c_ytd_payment = 10;
-                        customer.c_payment_cnt = 1;
-                        customer.c_delivery_cnt = 0;
-
-                        customer.c_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                        customer.c_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                        customer.c_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                        customer.c_state = TPCCUtil.randomStr(3).toUpperCase();
-                        // TPC-C 4.3.2.7: 4 random digits + "11111"
-                        customer.c_zip = TPCCUtil.randomNStr(4) + "11111";
-
-                        customer.c_phone = TPCCUtil.randomNStr(16);
-
-                        customer.c_since = sysdate;
-                        customer.c_middle = "OE";
-                        customer.c_data = TPCCUtil.randomStr(TPCCUtil.randomNumber(300, 500, gen));
-
-                        history.h_c_id = c;
-                        history.h_c_d_id = d;
-                        history.h_c_w_id = w;
-                        history.h_d_id = d;
-                        history.h_w_id = w;
-                        history.h_date = sysdate;
-                        history.h_amount = 10;
-                        history.h_data = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 24, gen));
-
-                        k = k + 2;
                         String str = "";
                         str = str + customer.c_w_id + ",";
                         str = str + customer.c_d_id + ",";
@@ -490,7 +515,21 @@ public class HTAPBCSVLoader extends Loader {
                         str = str + customer.c_since + ",";
                         str = str + customer.c_middle + ",";
                         str = str + customer.c_data;
-                        outcost.println(str);
+                        outCust.println(str);
+                        k++;
+
+                        // ***********************************************
+                        //                Start of HISTORY population
+                        // ***********************************************
+
+                        history.h_c_id = c;
+                        history.h_c_d_id = d;
+                        history.h_c_w_id = w;
+                        history.h_d_id = d;
+                        history.h_w_id = w;
+                        history.h_date = sysdate;
+                        history.h_amount = 10;
+                        history.h_data = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 24, gen));
 
                         str = "";
                         str = str + history.h_c_id + ",";
@@ -502,218 +541,146 @@ public class HTAPBCSVLoader extends Loader {
                         str = str + history.h_amount + ",";
                         str = str + history.h_data;
                         outHist.println(str);
+                        k++;
 
-                        if ((k % configCommitCount) == 0) {
-                            long tmpTime = new java.util.Date().getTime();
-                            String etStr = "  Elasped Time(ms): "
-                                    + ((tmpTime - lastTimeMS) / 1000.000)
-                                    + "                    ";
-                            LOG.debug(etStr.substring(0, 30)
-                                    + "  Writing record " + k + " of " + t);
-                            lastTimeMS = tmpTime;
-                        }
+                        // ***********************************************
+                        //                Start of ORDER population
+                        // ***********************************************
 
-                    } // end for [c]
-                } // end for [d]
-            } // end for [w]
-
-            long tmpTime = new java.util.Date().getTime();
-            String etStr = "  Elasped Time(ms): " + ((tmpTime - lastTimeMS) / 1000.000) + "                    ";
-
-            lastTimeMS = tmpTime;
-            now = new java.util.Date();
-
-            LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
-            LOG.debug("End Cust-Hist Data Load @  " + now);
-
-            outHist.close();
-            outcost.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            outHist.close();
-            outcost.close();
-        }
-
-        return k;
-
-    } // end loadCust()
-
-    private int loadOrder(int whseKount, int distWhseKount, int custDistKount) {
-
-        int k = 0;
-        int t;
-        PrintWriter outLine = null;
-        PrintWriter outNewOrder = null;
-
-        try {
-            out = new PrintWriter(new FileOutputStream(orderPath));
-            outLine = new PrintWriter(new FileOutputStream(orderLinePath));
-            outNewOrder = new PrintWriter(new FileOutputStream(newOrderPath));
-
-            LOG.debug("\nWriting Order file to: " + orderPath);
-            LOG.debug("\nWriting Order Line file to: " + orderLinePath);
-            LOG.debug("\nWriting New Order file to: " + newOrderPath);
-
-            now = new java.util.Date();
-            Oorder oorder = new Oorder();
-            NewOrder new_order = new NewOrder();
-            OrderLine order_line = new OrderLine();
-
-            t = (whseKount * distWhseKount * custDistKount);
-            t = (t * 11) + (t / 3);
-
-            LOG.debug("whse=" + whseKount + ", dist=" + distWhseKount + ", cust=" + custDistKount);
-            LOG.debug("\nStart Order-Line-New Load for approx " + t + " rows @ " + now + " ...");
-
-            for (int w = 1; w <= whseKount; w++) {
-                for (int d = 1; d <= distWhseKount; d++) {
-                    // TPC-C 4.3.3.1: o_c_id must be a permutation of [1, 3000]
-                    int[] c_ids = new int[custDistKount];
-                    for (int i = 0; i < custDistKount; ++i) {
-                        c_ids[i] = i + 1;
-                    }
-                    // Collections.shuffle exists, but there is no
-                    // Arrays.shuffle
-                    for (int i = 0; i < c_ids.length - 1; ++i) {
-                        int remaining = c_ids.length - i - 1;
-                        int swapIndex = gen.nextInt(remaining) + i + 1;
-                        assert i < swapIndex;
-                        int temp = c_ids[swapIndex];
-                        c_ids[swapIndex] = c_ids[i];
-                        c_ids[i] = temp;
-                    }
-
-                    for (int c = 1; c <= custDistKount; c++) {
-
-                        oorder.o_id = c;
-                        oorder.o_w_id = w;
-                        oorder.o_d_id = d;
-                        oorder.o_c_id = c_ids[c - 1];
-                        // o_carrier_id is set *only* for orders with ids < 2101
-                        // [4.3.3.1]
-                        if (oorder.o_id < FIRST_UNPROCESSED_O_ID) {
-                            oorder.o_carrier_id = TPCCUtil.randomNumber(1, 10,
-                                    gen);
-                        } else {
-                            oorder.o_carrier_id = null;
-                        }
-                        oorder.o_ol_cnt = TPCCUtil.randomNumber(5, 15, gen);
-                        oorder.o_all_local = 1;
-
-                        //**************************************************
-                        //TIMESTAMP DENSITY
                         oorder.o_entry_d = clock.tick();
-                        //**************************************************
+                        Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
 
                         if (calibrate) {
                             counter.incrementAndGet();
                         }
 
-                        k++;
-                        String str = "";
-                        str = str + oorder.o_id + ",";
+                        oorder.o_id = c;
+                        oorder.o_w_id = w;
+                        oorder.o_d_id = d;
+                        oorder.o_c_id = c_ids[c - 1];
+                        oorder.o_ol_cnt = TPCCUtil.randomNumber(5, 15, gen);
+                        oorder.o_all_local = 1;
+
+                        // o_carrier_id is set *only* for orders with ids < 2101 [4.3.3.1]
+                        String o_carrier_id;
+                        if (oorder.o_id < FIRST_UNPROCESSED_O_ID) {
+                            oorder.o_carrier_id = TPCCUtil.randomNumber(1, 10, gen);
+                            o_carrier_id = oorder.o_carrier_id.toString();
+                        } else {
+                            oorder.o_carrier_id = null;
+                            o_carrier_id = nullConstant;
+                        }
+
+                        str = "";
                         str = str + oorder.o_w_id + ",";
                         str = str + oorder.o_d_id + ",";
+                        str = str + oorder.o_id + ",";
                         str = str + oorder.o_c_id + ",";
-                        str = str + oorder.o_carrier_id + ",";
+                        str = str + o_carrier_id + ",";
                         str = str + oorder.o_ol_cnt + ",";
                         str = str + oorder.o_all_local + ",";
-                        Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
                         str = str + entry_d;
-                        out.println(str);
+                        outOrder.println(str);
+                        k++;
+
+                        // ***********************************************
+                        //                Start of NEW_ORDER population
+                        // ***********************************************
 
                         // 900 rows in the NEW-ORDER table corresponding to the last
-                        // 900 rows in the ORDER table for that district (i.e., with
-                        // NO_O_ID between 2,101 and 3,000)
+                        // 900 rows in the ORDER table for that district
+                        // (i.e., with NO_O_ID between 2,101 and 3,000)
 
                         if (c >= FIRST_UNPROCESSED_O_ID) {
-
                             new_order.no_w_id = w;
                             new_order.no_d_id = d;
                             new_order.no_o_id = c;
 
-                            k++;
                             str = "";
                             str = str + new_order.no_w_id + ",";
                             str = str + new_order.no_d_id + ",";
                             str = str + new_order.no_o_id;
                             outNewOrder.println(str);
+                            k++;
+                        }
 
-
-                        } // end new order
+                        // ***********************************************
+                        //                Start of ORDER-LINE population
+                        // ***********************************************
 
                         for (int l = 1; l <= oorder.o_ol_cnt; l++) {
+
                             order_line.ol_w_id = w;
                             order_line.ol_d_id = d;
                             order_line.ol_o_id = c;
                             order_line.ol_number = l; // ol_number
                             order_line.ol_i_id = TPCCUtil.randomNumber(1, 100000, gen);
+                            order_line.ol_supply_w_id = order_line.ol_w_id;
+                            order_line.ol_quantity = 5;
+                            order_line.ol_dist_info = TPCCUtil.randomStr(24);
 
                             if (order_line.ol_o_id < FIRST_UNPROCESSED_O_ID) {
                                 order_line.ol_delivery_d = oorder.o_entry_d;
                                 order_line.ol_amount = 0;
                             } else {
-                                order_line.ol_delivery_d = null;
-                                // random within [0.01 .. 9,999.99]
+                                // Random between [0.01 .. 9,999.99]
                                 order_line.ol_amount = (float) (TPCCUtil.randomNumber(1, 999999, gen) / 100.0);
+                                order_line.ol_delivery_d = null;
                             }
 
-                            order_line.ol_supply_w_id = order_line.ol_w_id;
-                            order_line.ol_quantity = 5;
-                            order_line.ol_dist_info = TPCCUtil.randomStr(24);
+                            String delivery_d;
+                            if (order_line.ol_delivery_d == null) {
+                                delivery_d = nullConstant;
+                            } else {
+                                delivery_d = new Timestamp(order_line.ol_delivery_d).toString();
+                            }
 
-                            k++;
                             str = "";
                             str = str + order_line.ol_w_id + ",";
                             str = str + order_line.ol_d_id + ",";
                             str = str + order_line.ol_o_id + ",";
                             str = str + order_line.ol_number + ",";
                             str = str + order_line.ol_i_id + ",";
-
-                            Timestamp delivery_d;
-                            if (order_line.ol_delivery_d == null) {
-                                delivery_d = new Timestamp(0L);
-                            } else {
-                                delivery_d = new Timestamp(order_line.ol_delivery_d);
-                            }
-
                             str = str + delivery_d + ",";
                             str = str + order_line.ol_amount + ",";
                             str = str + order_line.ol_supply_w_id + ",";
                             str = str + order_line.ol_quantity + ",";
                             str = str + order_line.ol_dist_info;
-                            outLine.println(str);
+                            outOrderLine.println(str);
+                            k++;
 
                             if ((k % configCommitCount) == 0) {
-                                long tmpTime = new java.util.Date().getTime();
-                                String etStr = "  Elasped Time(ms): "
-                                        + ((tmpTime - lastTimeMS) / 1000.000) + "                    ";
-                                LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
+                                long tmpTime = new Date().getTime();
+                                String etStr = "  Elasped Time(ms): " + ((tmpTime - lastTimeMS) / 1000.000)
+                                        + "                    ";
+
+                                LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + total);
                                 lastTimeMS = tmpTime;
-                                out.close();
                             }
                         } // end for [l]
                     } // end for [c]
                 } // end for [d]
             } // end for [w]
 
-            LOG.debug("  Writing final records " + k + " of " + t);
-
-            outLine.close();
-            outNewOrder.close();
-            out.close();
-
-            now = new java.util.Date();
-            LOG.debug("End Orders Load @  " + now);
-
+            long tmpTime = new Date().getTime();
+            String etStr = "  Elasped Time(ms): "
+                    + ((tmpTime - lastTimeMS) / 1000.000)
+                    + "                    ";
+            LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + total);
+            LOG.debug("End timestamped Data Load @  " + new Date());
+            lastTimeMS = tmpTime;
         } catch (Exception e) {
             e.printStackTrace();
-            outLine.close();
+        } finally {
+            outCust.close();
+            outHist.close();
+            outOrder.close();
             outNewOrder.close();
+            outOrderLine.close();
         }
-        return k;
 
-    } // end loadOrder()
+        return k;
+    }
 
     private int loadRegions() {
 
@@ -923,8 +890,7 @@ public class HTAPBCSVLoader extends Loader {
         totalRows += loadItem(configItemCount);
         totalRows += loadStock(numWarehouses, configItemCount);
         totalRows += loadDist(numWarehouses, configDistPerWhse);
-        totalRows += loadCust(numWarehouses, configDistPerWhse, configCustPerDist);
-        totalRows += loadOrder(numWarehouses, configDistPerWhse, configCustPerDist);
+        totalRows += loadTimestamped(numWarehouses, configDistPerWhse, configCustPerDist);
         totalRows += loadRegions();
         totalRows += loadNations();
         totalRows += loadSuppliers();
