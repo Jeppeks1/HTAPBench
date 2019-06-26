@@ -90,6 +90,7 @@ public class OrderStatus extends TPCCProcedure {
 		payGetCust = this.getPreparedStatement(conn, customerByIdSQL);
 		customerByName = this.getPreparedStatement(conn, customerByNameSQL);
 		ordStatGetNewestOrd = this.getPreparedStatement(conn, ordStatGetNewestOrdSQL);
+		ordStatGetOrderLines = this.getPreparedStatement(conn, ordStatGetOrderLinesSQL);
 
 		boolean isCustomerByName;
 		int customerID = -1;
