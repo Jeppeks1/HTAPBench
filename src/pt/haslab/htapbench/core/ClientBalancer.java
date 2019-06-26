@@ -114,7 +114,7 @@ public class ClientBalancer implements Runnable {
                 LOG.info("error: " + error);
 
                 if (olapStreams == 0 || (!saturated && output < error_margin * projectedThroughput)) {
-                    workload.addTPCHWorker(olapStreams);
+                    workload.addTPCHWorker();
                     LOG.info("ClientBalancer: Going to lauch 1 OLAP stream. Total OLAP Streams: " + (++olapStreams));
                 } else {
                     saturated = true;

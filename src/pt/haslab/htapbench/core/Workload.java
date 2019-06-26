@@ -433,7 +433,7 @@ public abstract class Workload {
         }
     }
 
-    void addTPCHWorker(int currentCount) {
+    void addTPCHWorker() {
         // Create a worker and initialize it with the shared WorkloadState
         Worker worker = bench.makeOLAPWorker();
         worker.initializeState(workState);
@@ -447,13 +447,8 @@ public abstract class Workload {
 
         // Create a thread and start it
         Thread thread = new Thread(worker);
-
-        // Simulate error in original implementation where only one TPCHWorker
-        // actually gets invoked through the start method on the Thread.
-        if (currentCount == 0) {
-            thread.start();
-            workerThreads.add(thread);
-        }
+        thread.start();
+        workerThreads.add(thread);
     }
 
     private long getInterval(int lowestRate, Phase.Arrival arrival) {
