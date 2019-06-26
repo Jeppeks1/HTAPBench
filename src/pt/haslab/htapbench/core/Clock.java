@@ -39,12 +39,15 @@ public class Clock {
     private long deltaTs;
     private long startTime;
     private long populateStartTs;
+    private boolean populate;
+    private boolean hybrid;
 
     /**
-     * Clock constructor for the population and execution phases.
+     * Clock constructor for the population phase.
      */
     public Clock(long deltaTS, int warehouses, boolean populate, String filePath) {
         this.deltaTs = deltaTS;
+        this.populate = populate;
         this.warehouses = warehouses;
 
         FileUtil.makeDirIfNotExists(filePath);
@@ -58,6 +61,15 @@ public class Clock {
         }
 
         this.clock = new AtomicLong(startTime);
+    }
+
+    /**
+     * Clock constructor for the execution phase.
+     */
+    public Clock(long deltaTS, int warehouses, boolean populate, boolean hybrid, String filePath) {
+        this(deltaTS, warehouses, populate, filePath);
+
+        this.hybrid = hybrid;
     }
 
     /**
@@ -102,22 +114,48 @@ public class Clock {
     }
 
     /**
-     * Computes the Timestamp to be used during dynamic query generation.
+     * Computes and returns the offset of the sliding window
+     * to be used in case of a hybrid workload.
+     */
+    private long getSlidingWindowOffset() {
+        // Check if we are in the population phase and if a sliding window is necessary
+        if (populate || !hybrid)
+            return 0;
+        else
+            return getCurrentTs() - getStartTimestamp();
+    }
+
+
+    /**
+     * Computes the Timestamp to be used during dynamic query generation to ensure
+     * comparable complexity across runs.
      *
-     * @param ts : A target Timestamp
-     * @return A new timestamp which is the offset between ts and the start Ts
-     * in the TPC-H spec transformed to our dataset.
+     * The timestamps in the population phase are generated using a fixed amount
+     * of time between each timestamp (a 'tick') and covers a relatively short
+     * period of time, while the TPC-H specification covers a 7 year period.
+     *
+     * This method transforms the randomly generated TPC-H timestamps to the equivalent
+     * timestamp in the population phase using the Clock. A 'sliding window' with a
+     * fixed size equal to the timestamp interval in the population phase is used
+     * in case of a hybrid workload, to also consider newly created data by the TPC-C
+     * workload.
+     *
+     * @param ts A TPC-H timestamp
+     * @return A new timestamp consistent with the timestamps in the population phase
+     *         to be used as date parameters in TPC-H queries.
      */
     public long transformTsFromSpecToLong(long ts) {
-        //number of timestamps;
+        // Determine the size of the interval in the population phase
         long tss = this.startTime - this.populateStartTs;
-        //number of ts in each slot;
-        int tpch_populate_slots = 2555;
-        long step = tss / tpch_populate_slots;
 
-        int diff_days = (int) ((ts - tpch_start_date) / (24 * 60 * 60 * 1000));
+        // Determine how far into the TPCH time interval the timestamp is, as a percentage
+        double pct = (double) (ts - tpch_start_date)/(tpch_end_date - tpch_start_date);
 
-        return this.populateStartTs + diff_days * step;
+        // Determine the offset, possibly including a sliding window
+        long offset = (long) (getSlidingWindowOffset() + pct * tss);
+
+        // Return the offset with populateStartTs as the reference
+        return offset + this.populateStartTs;
     }
 
     /**

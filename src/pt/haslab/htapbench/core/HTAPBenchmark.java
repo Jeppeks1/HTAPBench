@@ -51,7 +51,7 @@ public class HTAPBenchmark extends BenchmarkModule {
     void initClock() {
         int warehouses = (int) workConf.getScaleFactor();
         boolean hybrid = workConf.getHybridWorkload();
-        this.clock = new Clock(density.getDeltaTs(), warehouses, false, workConf.getFilePathCSV());
+        this.clock = new Clock(density.getDeltaTs(), warehouses, false, hybrid, workConf.getFilePathCSV());
     }
 
     @Override
