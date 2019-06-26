@@ -80,6 +80,9 @@ public class HTAPBench {
     // The Workload to be run
     private static Workload workload;
 
+    // The Mode the current benchmark is executed under
+    private static Mode mode;
+
     // Command line arguments that are needed in the WorkloadConfiguration
     private static int windowSize;
     private static double error_margin;
@@ -154,7 +157,7 @@ public class HTAPBench {
 
         // Retrieve the requested Configuration configuration mode
         String inputMode = argsLine.getOptionValue("mode").toLowerCase();
-        Mode mode = validateMode(inputMode);
+        mode = validateMode(inputMode);
         if (mode == Mode.INVALID) {
             LOG.fatal("Invalid mode " + inputMode + ". Print the help to see supported modes.");
             return;
@@ -472,9 +475,7 @@ public class HTAPBench {
             wrkld.setTerminals(setup.getTerminals());
             wrkld.setTargetTPS(setup.getTargetTPS());
             wrkld.setFilePathCSV(filePathCSV);
-
-            // Simulate error in original implementation where calibrate was hardcoded to true
-            wrkld.setCalibrate(Mode.CONFIGURE);
+            wrkld.setCalibrate(mode);
 
             // Set the useCSV value according to the input
             if (argsLine.hasOption("useCSV")) {
