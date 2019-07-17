@@ -46,7 +46,7 @@ public final class BenchmarkState {
 	private volatile State state = State.WARMUP;
 
 	// Assigned a value when starting the test. Used for offsets in the latency record.
-	private final long testStartNs;
+	private volatile long testStartNs;
 
 	long getTestStartNs() {
 		return testStartNs;
@@ -90,8 +90,10 @@ public final class BenchmarkState {
 	}
 
 	void startMeasure() {
-		assert state == State.WARMUP;
+        // Update the timestamp, since the recorded measurements only begin now
+        testStartNs = System.nanoTime();
 
+		assert state == State.WARMUP;
 		state = State.MEASURE;
 	}
 

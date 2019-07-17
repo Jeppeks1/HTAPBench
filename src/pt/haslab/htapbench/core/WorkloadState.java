@@ -53,6 +53,8 @@ import org.apache.log4j.Logger;
  */
 public class WorkloadState {
 
+    private static final Logger LOG = Logger.getLogger(WorkloadState.class);
+
     private static final int RATE_QUEUE_LIMIT = 10000;
     private final LinkedList<SubmittedProcedure> workQueue = new LinkedList<SubmittedProcedure>();
     private final BenchmarkState benchmarkState;
@@ -82,7 +84,10 @@ public class WorkloadState {
             if (resetQueues)
                 workQueue.clear();
 
-            assert amount > 0;
+            // Return if no new work was requested, which is the case when
+            // switching from the warm-up phase to the measure phase.
+            if (amount == 0)
+                return;
 
             // Only use the work queue if the phase is enabled and rate limited.
             if (traceReader != null && currentPhase != null) {
@@ -202,6 +207,12 @@ public class WorkloadState {
     Phase getCurrentPhase() {
         synchronized (benchmarkState) {
             return currentPhase;
+        }
+    }
+
+    void clearQueue() {
+        synchronized (this) {
+            workQueue.clear();
         }
     }
 

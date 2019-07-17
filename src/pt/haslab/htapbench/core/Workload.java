@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 import pt.haslab.htapbench.api.TransactionType;
 import pt.haslab.htapbench.benchmark.*;
 import pt.haslab.htapbench.benchmark.LatencyRecord.Sample;
+import pt.haslab.htapbench.configuration.workload.Analytical;
 import pt.haslab.htapbench.configuration.workload.Hybrid;
 import pt.haslab.htapbench.types.State;
 import pt.haslab.htapbench.util.Histogram;
@@ -115,9 +116,11 @@ public abstract class Workload {
         // Determine the sleeping interval to meet the specified TPS
         long intervalNs = getInterval(lowestRate, phase.arrival);
 
-        // Set the test duration in nanoseconds based on the user
-        // input stored in the current phase.
+        // Set the test- and warm-up duration in nanoseconds
         long testDurationNs = phase.time * 1000000000L;
+        long warmupDurationNs = this instanceof Analytical ? 0 : 60 * 1000000000L; // One minute
+
+        LOG.info("[Warm-up] Beginning warm-up phase for one minute");
 
         // Prepare values for the main loop
         long nextInterval = startTime + intervalNs;
@@ -238,13 +241,14 @@ public abstract class Workload {
 
             // Update the test state appropriately
             State state = benchmarkState.getState();
-            if (state == State.WARMUP && now >= startTime) {
+            if (state == State.WARMUP && (now - startTime >= warmupDurationNs)) {
                 if (phase != null && phase.isLatencyRun())
                     benchmarkState.startColdQuery();
                 else
                     benchmarkState.startMeasure();
 
-                startTime = now;
+                startTime = benchmarkState.getTestStartNs();
+                resetWorkerRequests();
                 interruptWorkers();
                 LOG.info("[Measure] Warmup complete, starting measurements.");
 
@@ -335,9 +339,9 @@ public abstract class Workload {
         Collections.sort(samples);
 
         // Compute stats on all the latencies
-        int[] latencies = new int[samples.size()];
+        long[] latencies = new long[samples.size()];
         for (int i = 0; i < samples.size(); ++i) {
-            latencies[i] = samples.get(i).latencyUs;
+            latencies[i] = samples.get(i).getLatencyUs();
         }
 
         DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
@@ -405,6 +409,19 @@ public abstract class Workload {
 
         // Release the lock
         RWLock.readLock().unlock();
+    }
+
+    private void resetWorkerRequests() {
+        // Reset the accumulated transaction count for each worker, when switching
+        // from the warm-up phase to the measure phase. The RW lock is not necessary,
+        // as the ClientBalancer will not have been invoked at this point.
+        for (Worker worker : workers)
+            worker.getTxncount();
+
+        // Clear the workQueue in case the warm-up phase experienced back-pressure,
+        // to not promote a sudden burst in throughput when the start-up latency
+        // settles down.
+        workState.addToQueue(0, true, workers.get(0));
     }
 
     private void createWorkerThreads(WorkloadState workloadState) {

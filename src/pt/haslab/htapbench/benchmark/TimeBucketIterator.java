@@ -47,7 +47,7 @@ public final class TimeBucketIterator implements Iterator<DistributionStatistics
     private final TransactionType txType;
 
     private LatencyRecord.Sample sample;
-    private long nextStartNs;
+    private long nextStartUs = 0;
 
     private DistributionStatistics next;
 
@@ -58,7 +58,6 @@ public final class TimeBucketIterator implements Iterator<DistributionStatistics
 
         if (samples.hasNext()) {
             sample = samples.next();
-            nextStartNs = sample.startNs;
             calculateNext();
         }
     }
@@ -66,12 +65,13 @@ public final class TimeBucketIterator implements Iterator<DistributionStatistics
     private void calculateNext() {
         assert next == null;
         assert sample != null;
-        assert sample.startNs >= nextStartNs;
+        assert sample.startUs >= nextStartUs;
 
         // Collect all samples in the time window
-        ArrayList<Integer> latencies = new ArrayList<Integer>();
-        long endNs = nextStartNs + windowSizeSeconds * 1000000000L;
-        while (sample != null && sample.startNs < endNs) {
+        ArrayList<Long> latencies = new ArrayList<Long>();
+        long endUs = nextStartUs + windowSizeSeconds * 1000000L;
+
+        while (sample != null && sample.startUs < endUs) {
             // Check if a TX Type filter is set, in the default case,
             // INVALID TXType means all should be reported, if a filter is
             // set, only this specific transaction
@@ -86,10 +86,10 @@ public final class TimeBucketIterator implements Iterator<DistributionStatistics
         }
 
         // Set up the next time window
-        assert sample == null || endNs <= sample.startNs;
-        nextStartNs = endNs;
+        assert sample == null || endUs <= sample.startUs;
+        nextStartUs = endUs;
 
-        int[] l = new int[latencies.size()];
+        long[] l = new long[latencies.size()];
         for (int i = 0; i < l.length; ++i) {
             l[i] = latencies.get(i);
         }

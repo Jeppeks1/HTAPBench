@@ -22,7 +22,6 @@ import pt.haslab.htapbench.benchmark.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implements the ClientBalacer which is responsible for deciding if more OLAP streams should be added to system.
@@ -50,17 +49,15 @@ public class ClientBalancer implements Runnable {
     private boolean saturated = false;
     private double integral = 0;
     private int olapStreams = 0;
-    private int projected_TPM;
-    private int TPM = 0;
-
-    // Interval requests used by the monitor
-    private AtomicInteger intervalRequests = new AtomicInteger(0);
+    private int projectedThroughput;
+    private int throughput = 0;
+    private int timeInterval = 0;
 
     ClientBalancer(HTAPBenchmark bench, List<Worker> workers, Workload workload) {
         WorkloadConfiguration wrkld = bench.getWorkloadConfiguration();
 
-        this.latencies = new LatencyRecord(System.nanoTime());
-        this.projected_TPM = wrkld.getTargetTPS() * deltaT;
+        this.latencies = new LatencyRecord(0);
+        this.projectedThroughput = wrkld.getTargetTPS() * deltaT;
         this.error_margin = wrkld.getErrorMargin();
 
         this.workload = workload;
@@ -69,33 +66,39 @@ public class ClientBalancer implements Runnable {
     }
 
     /**
-     * Computes the current TPM count by reading all workers stats.
+     * Computes the current throughput count by reading all workers stats.
      */
-    private void getTPM() {
+    private void getThroughput() {
         int txn_count = 0;
         for (Worker w : workers) {
             if (w instanceof TPCCWorker)
-                txn_count = txn_count + w.getTxncount();
+                txn_count += w.getTxncount();
         }
 
-        this.TPM = txn_count;
+        // Set the observed throughput
+        throughput = txn_count;
+
+        // Record the TPS for a given number of active OLAP streams
+        latencies.addLatency(olapStreams, timeInterval, throughput, deltaT);
+
+        // Update the current time interval
+        timeInterval += deltaT;
     }
 
     @Override
     public void run() {
         long measureStart = System.nanoTime();
         int requests = 0;
-        latencies.addLatency(0, 0, 0, TPM, 0);
-        intervalRequests.incrementAndGet();
 
         try {
             while (!terminate) {
                 requests++;
                 Thread.sleep(deltaT * 1000);
-                //Reads and computes the current observed TPM.
-                getTPM();
 
-                double error = projected_TPM - TPM;
+                // Reads and computes the current observed throughput.
+                getThroughput();
+
+                double error = projectedThroughput - throughput;
                 integral = integral + error / deltaT;
 
                 double ki = 0.03;
@@ -106,11 +109,11 @@ public class ClientBalancer implements Runnable {
                  * Take decision. If the the total targetTPS is within the
                  * error margin --> Launch another OLAP Stream.
                  */
-                LOG.info("TPS: " + TPM/60);
+                LOG.info("TPS: " + throughput / deltaT);
                 LOG.info("output: " + output);
                 LOG.info("error: " + error);
 
-                if (olapStreams == 0 || (!saturated && output < error_margin * projected_TPM)) {
+                if (olapStreams == 0 || (!saturated && output < error_margin * projectedThroughput)) {
                     workload.addTPCHWorker(olapStreams);
                     LOG.info("ClientBalancer: Going to lauch 1 OLAP stream. Total OLAP Streams: " + (++olapStreams));
                 } else {
@@ -123,13 +126,19 @@ public class ClientBalancer implements Runnable {
                 LOG.info("***************************************************************************************************");
                 LOG.info("                          #ACTIVE OLAP STREAMS: " + olapStreams);
                 LOG.info("***************************************************************************************************");
-
-                this.latencies.addLatency(olapStreams, 0, 0, TPM, 0);
-                intervalRequests.incrementAndGet();
             }
         } catch (InterruptedException ex) {
             if (!terminate)
                 LOG.warn("ClientBalancer received an unexpected InterruptedException.");
+
+            int samplingSize = bench.getWorkloadConfiguration().getSamplingSize();
+            int duration = bench.getWorkloadConfiguration().getBenchmarkDuration();
+
+            // The ClientBalancer might be interrupted shortly before it was due to record the final
+            // throughput. Guard for this case by examining the expected number  records in the latency
+            // list. Integer division intended, so that the value is rounded down.
+            if (latencies.size() != duration / samplingSize)
+                getThroughput();
         }
 
         long measureEnd = System.nanoTime();
@@ -142,9 +151,9 @@ public class ClientBalancer implements Runnable {
         Collections.sort(samples);
 
         // Compute stats on all the latencies
-        int[] latencies = new int[samples.size()];
+        long[] latencies = new long[samples.size()];
         for (int i = 0; i < samples.size(); ++i) {
-            latencies[i] = samples.get(i).latencyUs;
+            latencies[i] = samples.get(i).getLatencyUs();
         }
         DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
 

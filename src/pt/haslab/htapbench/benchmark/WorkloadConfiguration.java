@@ -71,9 +71,11 @@ public class WorkloadConfiguration {
 
     private int isolationMode = Connection.TRANSACTION_SERIALIZABLE;
     private int numberOfPhases = 0;
+    private int duration = 0;
     private int numTxnTypes;
     private int targetTPS;
     private int terminals;
+    private int sample;
 
     private boolean useCSV = true;
     private boolean recordAbortMessages;
@@ -106,6 +108,8 @@ public class WorkloadConfiguration {
     public void addWork(int time, int rate, List<String> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
         phases.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
         numberOfPhases++;
+
+        setBenchmarkDuration(time);
     }
 
     // -------------------------------------------------------------------
@@ -283,6 +287,14 @@ public class WorkloadConfiguration {
     public void setRecordAbortMessages(boolean recordAbortMessages) {
         this.recordAbortMessages = recordAbortMessages;
     }
+
+    public int getBenchmarkDuration() {return this.duration;}
+
+    public void setBenchmarkDuration(int duration) {this.duration = duration;}
+
+    public int getSamplingSize() {return this.sample;}
+
+    public void setSamplingSize(int size) {this.sample = size;}
 
     /**
      * Return the scale factor of the database size

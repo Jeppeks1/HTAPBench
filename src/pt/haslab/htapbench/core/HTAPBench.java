@@ -81,6 +81,7 @@ public class HTAPBench {
     private static Workload workload;
 
     // Command line arguments that are needed in the WorkloadConfiguration
+    private static int windowSize;
     private static double error_margin;
     private static boolean calibrate;
     private static boolean idealClient;
@@ -189,7 +190,7 @@ public class HTAPBench {
         String script = argsLine.getOptionValue("runscript");
 
         // Retrieve the sampling window parameter or set the default value
-        int windowSize = Integer.parseInt(argsLine.getOptionValue("sample", "60"));
+        windowSize = Integer.parseInt(argsLine.getOptionValue("sample", "60"));
 
         // Retrieve the calibrate variable
         calibrate = isBooleanOptionSet(argsLine, "calibrate");
@@ -247,8 +248,8 @@ public class HTAPBench {
 
             assert (results != null);
 
-            PrintStream ps = System.out;
-            PrintStream rs = System.out;
+            PrintStream res = System.out;
+            PrintStream raw = System.out;
 
             // Special result uploader
             for (Results r : results) {
@@ -266,18 +267,28 @@ public class HTAPBench {
                 // Build the complex path with the requested filename and possibly with the timestamp prepended
                 String baseFile = timestampValue + r.getName().toLowerCase();
 
-                // Increment the filename for new results
+                // Prepare the PrintStream for the windowed results file with an appropriate name
                 String nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".res"));
-                ps = new PrintStream(new File(nextName));
-                LOG.info("Output into file: " + nextName);
+                res = new PrintStream(new File(nextName));
+                LOG.info("Output windowed results into file: " + nextName);
 
+                // The ClientBalancer contains single-line results that should not be windowed.
+                // Write the raw results formatted as a .res file as the only ClientBalancer output.
+                if (r.getName().equalsIgnoreCase("ClientBalancer")) {
+                    r.writeAllCSVAbsoluteTiming(res);
+                    continue;
+                }
+
+                // Prepare the PrintStream for the raw results file with an appropriate name
                 nextName = FileUtil.getNextFilename(FileUtil.joinPath(outputDirectory, baseFile + ".raw"));
-                rs = new PrintStream(new File(nextName));
-                LOG.info("Output Raw data into file: " + nextName);
+                raw = new PrintStream(new File(nextName));
+                LOG.info("Output raw data into file: " + nextName);
+                r.writeAllCSVAbsoluteTiming(raw);
 
+                // Write the windowed results.
                 if (windowSize != 0) {
-                    LOG.info("Grouped into Buckets of " + windowSize + " seconds");
-                    r.writeCSV(windowSize, ps);
+                    LOG.info("Grouped into buckets of " + windowSize + " seconds");
+                    r.writeCSV(windowSize, res);
 
                     if (isBooleanOptionSet(argsLine, "upload")) {
                         ru.uploadResult();
@@ -286,7 +297,7 @@ public class HTAPBench {
                     // Allow more detailed reporting by transaction to make it easier to check
                     if (argsLine.hasOption("ss")) {
                         for (TransactionType t : activeTXTypes) {
-                            PrintStream ts = ps;
+                            PrintStream ts = res;
 
                             // Do not write TPCC results for analytical queries
                             if (r.getName().equalsIgnoreCase("TPCC") && t.getName().contains("Q"))
@@ -294,10 +305,6 @@ public class HTAPBench {
 
                             // Do not write TPCH results for transactional queries
                             if (r.getName().equalsIgnoreCase("TPCH") && !t.getName().contains("Q"))
-                                continue;
-
-                            // ClientBalancer results can not be more detailed
-                            if (r.getName().equalsIgnoreCase("ClientBalancer"))
                                 continue;
 
                             if (ts != System.out) {
@@ -313,8 +320,6 @@ public class HTAPBench {
                 } else if (LOG.isDebugEnabled()) {
                     LOG.warn("No bucket size specified");
                 }
-
-                r.writeAllCSVAbsoluteTiming(rs);
             }
 
             // The results from the TPCC and TPCH workloads already contain just a single histogram
@@ -341,8 +346,8 @@ public class HTAPBench {
             if (!singleHistogram.getRecordedMessagesHistogram().isEmpty())
                 LOG.info("Recorded exceptions:\n" + StringUtil.formatRecordedMessages(singleHistogram.getRecordedMessagesHistogram()));
 
-            ps.close();
-            rs.close();
+            res.close();
+            raw.close();
         } else {
             LOG.info("Skipping benchmark workload execution");
         }
@@ -461,6 +466,8 @@ public class HTAPBench {
             wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", true));
             wrkld.setErrorMargin(error_margin);
             wrkld.setIdealClient(idealClient);
+            wrkld.setSamplingSize(windowSize);
+            wrkld.setBenchmarkDuration(windowSize);
             wrkld.setScaleFactor(setup.getWarehouses());
             wrkld.setTerminals(setup.getTerminals());
             wrkld.setTargetTPS(setup.getTargetTPS());

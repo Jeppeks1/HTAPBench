@@ -32,11 +32,7 @@
 package pt.haslab.htapbench.benchmark;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import pt.haslab.htapbench.benchmark.LatencyRecord.Sample;
 import pt.haslab.htapbench.api.TransactionType;
@@ -107,7 +103,7 @@ public final class Results {
     }
 
     private double get_QphH() {
-        return (double) (measuredRequests) / (nanoSeconds * 0.000000001 / 360);
+        return (double) (measuredRequests) / (nanoSeconds * 0.000000001 / 3600);
     }
 
     private double get_tpmC() {
@@ -117,14 +113,14 @@ public final class Results {
     @Override
     public String toString() {
         String results = "Results(nanoSeconds=" + nanoSeconds + ", measuredRequests=" + measuredRequests + ") = " +
-                getRequestsPerSecond() + " requests/sec \n ************************* \n" +
+                getRequestsPerSecond() + " requests/sec \n************************** \n" +
                 "Total TS Count: " + this.ts_counter + "\n";
 
         if (getName().equals("TPCC"))
-            results = results + "tpmC : " + get_tpmC() + "\n *************************";
+            results = results + "tpmC : " + get_tpmC() + "\n**************************";
 
         if (getName().equals("TPCH"))
-            results = results + "QphH : " + get_QphH() + "\n *************************";
+            results = results + "QphH : " + get_QphH() + "\n**************************";
 
         return results;
     }
@@ -134,18 +130,50 @@ public final class Results {
     }
 
     public void writeCSV(int windowSizeSeconds, PrintStream out, TransactionType txType) {
+        boolean tpcc = this.getName().equalsIgnoreCase("TPCC");
+
+        String headerTPCC = "time,    TPS, avg_lat, min_lat, 25th_lat, 50th_lat, 75th_lat, 90th_lat, 95th_lat, 99th_lat,  max_lat";
+        String headerTPCH = "time, queries, avg_lat, min_lat, 25th_lat, 50th_lat, 75th_lat, 90th_lat, 95th_lat, 99th_lat,  max_lat";
+
+        String formatTPCC = "%4d, %6.2f, %7.2f, %7.2f, %8.2f, %8.2f, %8.2f, %8.2f, %8.2f, %8.2f, %8.2f\n";
+        String formatTPCH = "%4d, %7d, %7.0f, %7.0f, %8.0f, %8.0f, %8.0f, %8.0f, %8.0f, %8.0f, %8.0f\n";
+
         out.println("**********************************************");
-        out.println(this.getName() + " Results:");
+        out.println(this.getName() + " results (latencies in milliseconds)");
         out.println("**********************************************");
-        out.println("time(sec), throughput(req/sec), avg_lat(ms), min_lat(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms), 90th_lat(ms), 95th_lat(ms), 99th_lat(ms), max_lat(ms), tp (req/s) scaled");
+        out.println(tpcc ? headerTPCC : headerTPCH);
 
         int i = 0;
+        final double factor = 1000;
         for (DistributionStatistics s : new TimeBucketIterable(latencySamples, windowSizeSeconds, txType)) {
-            final double MILLISECONDS_FACTOR = 1e3;
-            out.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", i * windowSizeSeconds, (double) s.getCount() / windowSizeSeconds, s.getAverage() / MILLISECONDS_FACTOR,
-                    s.getMinimum() / MILLISECONDS_FACTOR, s.get25thPercentile() / MILLISECONDS_FACTOR, s.getMedian() / MILLISECONDS_FACTOR, s.get75thPercentile() / MILLISECONDS_FACTOR,
-                    s.get90thPercentile() / MILLISECONDS_FACTOR, s.get95thPercentile() / MILLISECONDS_FACTOR, s.get99thPercentile() / MILLISECONDS_FACTOR, s.getMaximum() / MILLISECONDS_FACTOR,
-                    MILLISECONDS_FACTOR / s.getAverage());
+            if (tpcc){
+                out.printf(Locale.US, formatTPCC,
+                        i * windowSizeSeconds,
+                        (double) s.getCount() / windowSizeSeconds,
+                        s.getAverage() / factor,
+                        s.getMinimum() / factor,
+                        s.get25thPercentile() / factor,
+                        s.getMedian() / factor,
+                        s.get75thPercentile() / factor,
+                        s.get90thPercentile() / factor,
+                        s.get95thPercentile() / factor,
+                        s.get99thPercentile() / factor,
+                        s.getMaximum() / factor);
+            } else {
+                out.printf(Locale.US, formatTPCH,
+                        i * windowSizeSeconds,
+                        s.getCount(),
+                        s.getAverage() / factor,
+                        s.getMinimum() / factor,
+                        s.get25thPercentile() / factor,
+                        s.getMedian() / factor,
+                        s.get75thPercentile() / factor,
+                        s.get90thPercentile() / factor,
+                        s.get95thPercentile() / factor,
+                        s.get99thPercentile() / factor,
+                        s.getMaximum() / factor);
+            }
+
             i += 1;
         }
 
@@ -153,26 +181,31 @@ public final class Results {
     }
 
     public void writeAllCSVAbsoluteTiming(PrintStream out) {
+        // Write the ClientBalancer samples formatted as a result file
+        if (this.getName().equals("ClientBalancer")) {
+            out.println("**********************************************");
+            out.println(this.getName() + " Results:");
+            out.println("**********************************************");
+            out.println("time,    TPS, OLAP workers");
 
-        // This is needed because nanTime does not guarantee offset... we
-        // ground it (and round it) to ms from 1970-01-01 like currentTime
-        double x = ((double) System.nanoTime() / (double) 1000000000);
-        double y = ((double) System.currentTimeMillis() / (double) 1000);
-        double offset = x - y;
+            // Write the results. The variable names in the Sample do not match their
+            // meaning, as the Sample class was lazily adopted to fit this purpose.
+            for (Sample s : latencySamples) {
+                out.printf(Locale.US, "%4d, %6.2f, %12d\n", s.startUs, (double) s.workerId / s.phaseId, s.tranType);
+            }
 
-        // long startNs = latencySamples.get(0).startNs;
-        if (this.getName().endsWith("TPCC"))
-            out.println("transaction type (index in config file), start time (microseconds),latency (microseconds),worker id(start number), phase id(index in config file)");
+            out.println(toString());
+        } else {
+            // Otherwise write the raw result file
+            if (this.getName().endsWith("TPCC"))
+                out.println("transaction type (index in config file), start time (us), end time(us), latency(us), worker id(start number), phase id(index in config file)");
 
-        if (this.getName().equals("TPCH"))
-            out.println("transaction type (index in config file), start time (microseconds),latency (microseconds),worker id(start number), Rows in ResultSet");
+            if (this.getName().equals("TPCH"))
+                out.println("transaction type (index in config file), start time (us), end time(us), latency(us), worker id(start number), Rows in ResultSet");
 
-        if (this.getName().equals("ClientBalancer"))
-            out.println("transaction type (index in config file), start time (microseconds),latency (microseconds), Current TPS , phase id(index in config file)");
-
-        for (Sample s : latencySamples) {
-            double startUs = ((double) s.startNs / (double) 1000000000);
-            out.println(s.tranType + "," + String.format("%10.6f", startUs - offset) + "," + s.latencyUs + "," + s.workerId + "," + s.phaseId);
+            for (Sample s : latencySamples) {
+                out.println(s.tranType + "," + s.startUs + "," + s.endUs + "," + s.latencyUs + "," + s.workerId + "," + s.phaseId);
+            }
         }
     }
 

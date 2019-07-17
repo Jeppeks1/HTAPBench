@@ -63,7 +63,7 @@ public class DistributionStatistics {
     /**
      * Computes distribution statistics over values. WARNING: This will sort values.
      */
-    public static DistributionStatistics computeStatistics(int[] values) {
+    public static DistributionStatistics computeStatistics(long[] values) {
         if (values.length == 0) {
             long[] percentiles = new long[PERCENTILES.length];
             for (int i = 0; i < percentiles.length; ++i) {
@@ -76,7 +76,7 @@ public class DistributionStatistics {
         Arrays.sort(values);
 
         double sum = 0;
-        for (int value1 : values) {
+        for (long value1 : values) {
             sum += value1;
         }
 
@@ -84,7 +84,7 @@ public class DistributionStatistics {
         double sumDiffsSquared = 0;
         double standardDeviation = 0;
 
-        for (int value : values) {
+        for (long value : values) {
             double v = value - average;
             sumDiffsSquared += v * v;
         }
@@ -95,7 +95,7 @@ public class DistributionStatistics {
 
         // NOTE: NIST recommends interpolating. This just selects the closest value,
         // which is described as another common technique.
-        // http://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm
+        // http://www.itl.nist.gov/div898/handbook/prc/section2/prc252.html
         long[] percentiles = new long[PERCENTILES.length];
         for (int i = 0; i < percentiles.length; ++i) {
             int index = (int) (PERCENTILES[i] * values.length);

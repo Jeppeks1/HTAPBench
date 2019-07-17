@@ -122,7 +122,8 @@ public abstract class Worker implements Runnable {
         }
 
         // Initialize the LatencyRecord to avoid a NullPointerError caused
-        // by OLAPWorkers not having their start() method invoked.
+        // by OLAPWorkers not having their start() method invoked or because
+        // they are stuck executing their workload.
         latencies = new LatencyRecord(0);
     }
 
@@ -172,23 +173,23 @@ public abstract class Worker implements Runnable {
         return (T) (class_procedures.get(procClass));
     }
 
-    public final Histogram<TransactionType> getSuccessHistogram() {
+    final Histogram<TransactionType> getSuccessHistogram() {
         return (this.txnSuccess);
     }
 
-    public final Histogram<TransactionType> getRetryHistogram() {
+    final Histogram<TransactionType> getRetryHistogram() {
         return (this.txnRetry);
     }
 
-    public final Histogram<TransactionType> getAbortedHistogram() {
+    final Histogram<TransactionType> getAbortedHistogram() {
         return (this.txnAborted);
     }
 
-    public final Histogram<TransactionType> getErrorHistogram() {
+    final Histogram<TransactionType> getErrorHistogram() {
         return (this.txnErrors);
     }
 
-    public final Map<TransactionType, Histogram<String>> getRecordedMessagesHistogram() {
+    final Map<TransactionType, Histogram<String>> getRecordedMessagesHistogram() {
         return (this.txnRecordedMessages);
     }
 
@@ -233,9 +234,6 @@ public abstract class Worker implements Runnable {
         Thread t = Thread.currentThread();
         SubmittedProcedure pieceOfWork;
         t.setName(this.getName());
-
-        // In case of reuse reset the measurements
-        latencies = new LatencyRecord(wrkldState.getTestStartNs());
 
         // Invoke the initialize callback
         try {
@@ -301,8 +299,11 @@ public abstract class Worker implements Runnable {
                     continue work;
             }
 
+            // Update the global start timestamp before executing the work
+            latencies.setGlobalStartNs(wrkldState.getTestStartNs());
+
             // PART 3: Execute work
-            long start = pieceOfWork.getStartTime();
+            long start = System.nanoTime();
 
             TransactionType type = invalidTT;
             ResultSetResult rows = new ResultSetResult();
@@ -407,31 +408,34 @@ public abstract class Worker implements Runnable {
                     else
                         commit();
 
-                    // Determine which logging actions should be taken based on the status.
-                    switch (status) {
-                        case SUCCESS:
-                            txnSuccess.put(next);
-                            break;
-                        case ABORTED:
-                            txnAborted.put(next);
-                            break;
-                        case RETRY:
-                            txnRetry.put(next);
-                            break;
-                        case INTERRUPTED:
-                            LOG.debug(getName() + " interrupted transaction " + next + " due to benchmark or user request");
-                            break;
-                        case INVALID_RESULT:
-                            // This should be treated as an outright error due to query validation
-                            txnErrors.put(next);
-                            break;
-                        case UNKNOWN_EXCEPTION:
-                            LOG.warn("Caught an unknown SQLException in " + next.getName() + ". Examine the recorded error messages.");
-                            txnErrors.put(next);
-                            break;
-                        default:
-                            assert (false) : String.format("Unexpected status '%s' for %s", status, next);
-                    } // SWITCH
+                    // Do not record the transaction unless required by the global state
+                    if (wrkldState.getGlobalState() == State.MEASURE) {
+                        // Determine which logging actions should be taken based on the status.
+                        switch (status) {
+                            case SUCCESS:
+                                txnSuccess.put(next);
+                                break;
+                            case ABORTED:
+                                txnAborted.put(next);
+                                break;
+                            case RETRY:
+                                txnRetry.put(next);
+                                break;
+                            case INTERRUPTED:
+                                LOG.debug(getName() + " interrupted transaction " + next + " due to benchmark or user request");
+                                break;
+                            case INVALID_RESULT:
+                                // This should be treated as an outright error due to query validation
+                                txnErrors.put(next);
+                                break;
+                            case UNKNOWN_EXCEPTION:
+                                LOG.warn("Caught an unknown SQLException in " + next.getName() + ". Examine the recorded error messages.");
+                                txnErrors.put(next);
+                                break;
+                            default:
+                                assert (false) : String.format("Unexpected status '%s' for %s", status, next);
+                        } // SWITCH
+                    }
                 }
             } // WHILE
         } catch (SQLException ex) {

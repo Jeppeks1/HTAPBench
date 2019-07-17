@@ -47,27 +47,39 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
     /**
      * Contains (start time, latency, transactionType, workerid, phaseid) pentiplets in
      * microsecond form. The start times are "compressed" by encoding them as increments,
-     * starting from startNs. A 32-bit integer provides sufficient resolution for an
-     * interval of 2146 seconds, or 35 minutes.
+     * starting from globalStartNs.
      */
     private final ArrayList<Sample[]> values = new ArrayList<Sample[]>();
     private int nextIndex;
 
-    private final long startNs;
-    private long lastNs;
+    private long globalStartNs;
 
-    public LatencyRecord(long startNs) {
-        assert startNs > 0;
-
-        this.startNs = startNs;
-        lastNs = startNs;
+    public LatencyRecord(long globalStartNs) {
+        this.globalStartNs = globalStartNs;
 
         allocateChunk();
     }
 
+    public void setGlobalStartNs(long globalStartNs) {
+        // Update the global start timestamp when switching to the measurement phase
+        if (globalStartNs > this.globalStartNs)
+            this.globalStartNs = globalStartNs;
+    }
+
+    // For the ClientBalancer
+    public void addLatency(int olapStreams, long timeInterval, int txnCount, int deltaT) {
+        if (nextIndex == ALLOC_SIZE)
+            allocateChunk();
+
+        Sample[] chunk = values.get(values.size() - 1);
+
+        chunk[nextIndex] = new Sample(olapStreams, timeInterval, 0, 0, txnCount, deltaT);
+
+        ++nextIndex;
+    }
+
+    // For TPCC and TPCH
     public void addLatency(int transType, long startNs, long endNs, int workerId, int phaseId) {
-        assert lastNs > 0;
-        assert lastNs - 500 <= startNs;
         assert endNs >= startNs;
 
         if (nextIndex == ALLOC_SIZE)
@@ -75,16 +87,14 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
         Sample[] chunk = values.get(values.size() - 1);
 
-        long startOffsetNs = (startNs - lastNs + 500);
-        assert startOffsetNs >= 0;
-        int latencyUs = (int) ((endNs - startNs + 500) / 1000);
-        assert latencyUs >= 0;
+        // Determine the latency and start/end-time, offset with respect to the global benchmark start-time
+        long latencyUs = (endNs - startNs) / 1000;
+        long startOffsetUs = (startNs - globalStartNs) / 1000;
+        long endOffsetUs = (endNs - globalStartNs) / 1000;
 
-        chunk[nextIndex] = new Sample(transType, startOffsetNs, latencyUs, workerId, phaseId);
+        chunk[nextIndex] = new Sample(transType, startOffsetUs, endOffsetUs, latencyUs, workerId, phaseId);
 
         ++nextIndex;
-
-        lastNs += startOffsetNs;
     }
 
     private void allocateChunk() {
@@ -110,14 +120,16 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
      */
     public static final class Sample implements Comparable<Sample> {
         final int tranType;
-        long startNs;
-        public final int latencyUs;
+        final long startUs;
+        final long endUs;
+        final long latencyUs;
         final int workerId;
         final int phaseId;
 
-        Sample(int tranType, long startNs, int latencyUs, int workerId, int phaseId) {
+        Sample(int tranType, long startUs, long endUs, long latencyUs, int workerId, int phaseId) {
             this.tranType = tranType;
-            this.startNs = startNs;
+            this.startUs = startUs;
+            this.endUs = endUs;
             this.latencyUs = latencyUs;
             this.workerId = workerId;
             this.phaseId = phaseId;
@@ -125,7 +137,7 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
         @Override
         public int compareTo(Sample other) {
-            long diff = this.startNs - other.startNs;
+            long diff = this.endUs - other.endUs;
 
             // explicit comparison to avoid long to int overflow
             if (diff > 0)
@@ -136,12 +148,13 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
                 return 0;
             }
         }
+
+        public long getLatencyUs() { return this.latencyUs;}
     }
 
     private final class LatencyRecordIterator implements Iterator<Sample> {
         private int chunkIndex = 0;
         private int subIndex = 0;
-        private long lastIteratorNs = startNs;
 
         @Override
         public boolean hasNext() {
@@ -170,11 +183,6 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
                 chunkIndex += 1;
                 subIndex = 0;
             }
-
-            // Previously, s.startNs was just an offset from the previous
-            // value.  Now we make it an absolute.
-            s.startNs += lastIteratorNs;
-            lastIteratorNs = s.startNs;
 
             return s;
         }
