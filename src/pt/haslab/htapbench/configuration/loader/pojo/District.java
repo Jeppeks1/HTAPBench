@@ -47,6 +47,7 @@ public class District implements Serializable {
 	public String d_city;
 	public String d_state;
 	public String d_zip;
+	public int d_nationkey;
 
 	@Override
 	public String toString() {

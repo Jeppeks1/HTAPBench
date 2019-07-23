@@ -40,13 +40,11 @@ package pt.haslab.htapbench.configuration.loader;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import org.apache.log4j.Logger;
 
 import pt.haslab.htapbench.benchmark.BenchmarkModule;
 import pt.haslab.htapbench.catalog.Catalog;
-import pt.haslab.htapbench.catalog.Table;
 import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.core.HTAPBenchmark;

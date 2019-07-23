@@ -31,6 +31,7 @@
  */
 package pt.haslab.htapbench.random;
 
+import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.random.distributions.Distribution;
 import pt.haslab.htapbench.random.distributions.HotspotDistribution;
 import pt.haslab.htapbench.random.distributions.UniformDistribution;
@@ -47,85 +48,117 @@ import java.util.*;
 public class RandomParameters {
 
     private static final Map<String, String> nationToRegion = new LinkedHashMap<>();
+    private static final Map<String, List<String>> regionToNations = new LinkedHashMap<>();
+    private static final List<String> acceptableRegions = new ArrayList<String>();
     private static final List<String> nations;
-
-    static {
-        nationToRegion.put("Algeria","Africa");
-        nationToRegion.put("Cameroon","Africa");
-        nationToRegion.put("Ethiopia","Africa");
-        nationToRegion.put("Kenya","Africa");
-        nationToRegion.put("Madagascar","Africa");
-        nationToRegion.put("Nigeria","Africa");
-        nationToRegion.put("Rwanda","Africa");
-        nationToRegion.put("South Africa","Africa");
-        nationToRegion.put("Tanzania","Africa");
-        nationToRegion.put("Zimbabwe","Africa");
-        nationToRegion.put("Bangladesh","Asia");
-        nationToRegion.put("China","Asia");
-        nationToRegion.put("India","Asia");
-        nationToRegion.put("Indonesia","Asia");
-        nationToRegion.put("Japan","Asia");
-        nationToRegion.put("South Korea","Asia");
-        nationToRegion.put("Malaysia","Asia");
-        nationToRegion.put("Mongolia","Asia");
-        nationToRegion.put("Saudi Arabia","Asia");
-        nationToRegion.put("Singapore","Asia");
-        nationToRegion.put("Taiwan","Asia");
-        nationToRegion.put("Thailand","Asia");
-        nationToRegion.put("Turkey","Asia");
-        nationToRegion.put("Vietnam","Asia");
-        nationToRegion.put("Yemen","Asia");
-        nationToRegion.put("Austria","Europe");
-        nationToRegion.put("Belgium","Europe");
-        nationToRegion.put("Czech Republic","Europe");
-        nationToRegion.put("Denmark","Europe");
-        nationToRegion.put("Finland","Europe");
-        nationToRegion.put("France","Europe");
-        nationToRegion.put("Germany","Europe");
-        nationToRegion.put("Greece","Europe");
-        nationToRegion.put("Italy","Europe");
-        nationToRegion.put("Netherlands","Europe");
-        nationToRegion.put("Norway","Europe");
-        nationToRegion.put("Russia","Europe");
-        nationToRegion.put("Spain","Europe");
-        nationToRegion.put("Sweden","Europe");
-        nationToRegion.put("Ukraine","Europe");
-        nationToRegion.put("United Kingdom","Europe");
-        nationToRegion.put("Canada","North America");
-        nationToRegion.put("Cuba","North America");
-        nationToRegion.put("Guatemala","North America");
-        nationToRegion.put("Honduras","North America");
-        nationToRegion.put("Mexico","North America");
-        nationToRegion.put("United States","North America");
-        nationToRegion.put("Australia","Oceania");
-        nationToRegion.put("Fiji","Oceania");
-        nationToRegion.put("New Zealand","Oceania");
-        nationToRegion.put("Papua New Guinea","Oceania");
-        nationToRegion.put("Samoa","Oceania");
-        nationToRegion.put("Argentina","South America");
-        nationToRegion.put("Brazil","South America");
-        nationToRegion.put("Chile","South America");
-        nationToRegion.put("Ecuador","South America");
-        nationToRegion.put("Paraguay","South America");
-        nationToRegion.put("Peru","South America");
-        nationToRegion.put("Uruguay","South America");
-        nationToRegion.put("Venezuela","South America");
-
-        nations = new ArrayList<>(nationToRegion.keySet());
-    }
 
     private static List<String> regions = Arrays.asList("Africa", "Asia", "Europe", "North America", "Oceania", "South America");
     private static List<Character> alphabet = Arrays.asList('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
     private static List<String> su_comment = Arrays.asList("good", "bad");
 
+    private static int regionCount = 0;
+
+    static {
+        // The following pairs of nations and regions are *not* randomly selected from,
+        // in order to have the highest possible representation from all regions. The
+        // nations are selected using an alternating region strategy when the benchmark
+        // is generating data. This ensures that all nations are represented as well,
+        // so that empty result-sets are avoided.
+        nationToRegion.put("Algeria","Africa");
+        nationToRegion.put("Bangladesh","Asia");
+        nationToRegion.put("Austria","Europe");
+        nationToRegion.put("Bahamas","North America");
+        nationToRegion.put("Australia","Oceania");
+        nationToRegion.put("Argentina","South America");
+
+        nationToRegion.put("Cameroon","Africa");
+        nationToRegion.put("China","Asia");
+        nationToRegion.put("Belgium","Europe");
+        nationToRegion.put("Canada","North America");
+        nationToRegion.put("Fiji","Oceania");
+        nationToRegion.put("Brazil","South America");
+
+        nationToRegion.put("Ethiopia","Africa");
+        nationToRegion.put("India","Asia");
+        nationToRegion.put("Denmark","Europe");
+        nationToRegion.put("Cuba","North America");
+        nationToRegion.put("Marshall Islands","Oceania");
+        nationToRegion.put("Chile","South America");
+
+        nationToRegion.put("Kenya","Africa");
+        nationToRegion.put("Indonesia","Asia");
+        nationToRegion.put("Finland","Europe");
+        nationToRegion.put("Guatemala","North America");
+        nationToRegion.put("Nauru","Oceania");
+        nationToRegion.put("Colombia","South America");
+
+        nationToRegion.put("Madagascar","Africa");
+        nationToRegion.put("Japan","Asia");
+        nationToRegion.put("Germany","Europe");
+        nationToRegion.put("Haiti","North America");
+        nationToRegion.put("New Zealand","Oceania");
+        nationToRegion.put("Ecuador","South America");
+
+        nationToRegion.put("Nigeria","Africa");
+        nationToRegion.put("South Korea","Asia");
+        nationToRegion.put("Greece","Europe");
+        nationToRegion.put("Honduras","North America");
+        nationToRegion.put("Papua New Guinea","Oceania");
+        nationToRegion.put("Panama","South America");
+
+        nationToRegion.put("Rwanda","Africa");
+        nationToRegion.put("Malaysia","Asia");
+        nationToRegion.put("Italy","Europe");
+        nationToRegion.put("Jamaica","North America");
+        nationToRegion.put("Samoa","Oceania");
+        nationToRegion.put("Paraguay","South America");
+
+        nationToRegion.put("South Africa","Africa");
+        nationToRegion.put("Mongolia","Asia");
+        nationToRegion.put("Norway","Europe");
+        nationToRegion.put("Mexico","North America");
+        nationToRegion.put("Solomon Islands","Oceania");
+        nationToRegion.put("Peru","South America");
+
+        nationToRegion.put("Tanzania","Africa");
+        nationToRegion.put("Saudi Arabia","Asia");
+        nationToRegion.put("Spain","Europe");
+        nationToRegion.put("Puerto Rico","North America");
+        nationToRegion.put("Tonga","Oceania");
+        nationToRegion.put("Uruguay","South America");
+
+        nationToRegion.put("Zimbabwe","Africa");
+        nationToRegion.put("Singapore","Asia");
+        nationToRegion.put("United Kingdom","Europe");
+        nationToRegion.put("United States","North America");
+        nationToRegion.put("Tuvalu","Oceania");
+        nationToRegion.put("Venezuela","South America");
+
+        // List used to associate a key with a nation
+        nations = new ArrayList<>(nationToRegion.keySet());
+    }
+
     private String distributionType;
-    private int regionCount = 0;
-    private int nationCount = 0;
     private int warehouses;
 
     public RandomParameters(String distributionType, int warehouses) {
         this.distributionType = distributionType;
         this.warehouses = warehouses;
+
+        // Populate the acceptable regions list and the map defining which nations
+        // correspond to a given region.
+        for (String region : regions) {
+            if (regionCount < warehouses) {
+                List<String> list = new ArrayList<String>();
+                for (Map.Entry<String, String> entry : nationToRegion.entrySet()) {
+                    if (entry.getValue().equals(region))
+                        list.add(entry.getKey());
+                }
+                regionToNations.put(region, list);
+                acceptableRegions.add(region);
+                regionCount++;
+            }
+        }
     }
 
     public static long convertDateToLong(int year, int month, int day) {
@@ -149,54 +182,76 @@ public class RandomParameters {
         return start + Math.random() * (end - start);
     }
 
+    public static int getDistrictNationKey(int nationkey, int id) {
+        String region = nationToRegion.get(nations.get(nationkey - 1));
+        List<String> nationsInRegion = regionToNations.get(region);
+        String newNation = nationsInRegion.get(id - 1);
+        return nations.indexOf(newNation) + 1;
+    }
+
+    // ***********************************************
+    //               Nation and region
+    // ***********************************************
+
+    /**
+     * Returns a random nationkey within a region that is guaranteed to
+     * be a part of the generated initial dataset.
+     *
+     * @return a random nationkey
+     */
+    public int getRandomNationKey() {
+        // The universe of acceptable keys are bounded by the minimum value
+        // of regions.size() or the number of warehouses. For each region,
+        // there should be configDistPerWhse number of nations.
+        int regionIndex = RandomParameters.randBetween(0, acceptableRegions.size() - 1);
+        String region = acceptableRegions.get(regionIndex);
+        List<String> nationsWithinRandomRegion = regionToNations.get(region);
+        int nationIndex = RandomParameters.randBetween(0, nationsWithinRandomRegion.size() - 1);
+        String randomNation = nationsWithinRandomRegion.get(nationIndex);
+        return nations.indexOf(randomNation) + 1;
+    }
+
     public String getRandomRegion() {
-        int bound = warehouses > regions.size() ? regions.size() : warehouses;
-        Distribution dist = getDistributionType(bound);
-
-        // Make sure as many regions are represented as possible
-        if (regionCount < bound)
-            return regions.get(++regionCount);
-        else
-            return regions.get(dist.nextInt());
-    }
-
-    public String getRandomNation() {
-        int bound = warehouses > nations.size() ? nations.size() : warehouses;
-        Distribution dist = getDistributionType(bound);
-
-        // Make sure as many nations are represented as possible
-        if (nationCount < bound)
-            return nations.get(++nationCount);
-        else
-            return nations.get(dist.nextInt());
-    }
-
-    public String getRandomNation(String region) {
-        while (true) {
-            String nation = getRandomNation();
-            if (nationToRegion.get(nation).equals(region))
-                return nation;
-        }
-    }
-
-    public String getRegion(String nation) {
+        String nation = nations.get(getRandomNationKey() - 1);
         return nationToRegion.get(nation);
     }
 
+    public String getRandomNation() {
+        return nations.get(getRandomNationKey() - 1);
+    }
+
+    /**
+     * Returns a random nation within the specified region. The input parameter
+     * must be generated using the getRandomRegion() method to make sure the
+     * region is represented in the benchmark.
+     *
+     * @param region The region to generate a nation within.
+     * @return a nation within the given region.
+     */
+    public String getRandomNation(String region) {
+        List<String> nationsWithinRegion = regionToNations.get(region);
+        int nationIndex = RandomParameters.randBetween(0, nationsWithinRegion.size() - 1);
+        return nationsWithinRegion.get(nationIndex);
+    }
+
+    // ***********************************************
+    //                      Other
+    // ***********************************************
+
     public Character generateRandomCharacter() {
-        Distribution dist = getDistributionType(alphabet.size());
+        Distribution dist = getDistributionType(alphabet.size() - 1);
         int rand = dist.nextInt();
         return alphabet.get(rand);
     }
 
     public String getRandomSuComment() {
-        Distribution dist = getDistributionType(su_comment.size());
+        Distribution dist = getDistributionType(su_comment.size() - 1);
         int rand = dist.nextInt();
         return su_comment.get(rand);
     }
 
     public String getRandomPhoneCountryCode() {
-        Distribution dist = getDistributionType(nations.size());
+        Distribution dist = getDistributionType(nations.size() - 1);
         int rand = dist.nextInt() + 10;
         return Integer.toString(rand);
     }
@@ -205,15 +260,14 @@ public class RandomParameters {
         Distribution dist = null;
 
         if (distributionType.equals("uniform")) {
-            dist = new UniformDistribution(0, size - 1);
+            dist = new UniformDistribution(1, size);
         }
 
         if (distributionType.equals("hotspot")) {
-            int lower_bound = 0;
-            int upper_bound = size - 1;
+            int lower_bound = 1;
             double hotsetFraction = 0.5;
             double hotOpnFraction = 0.5;
-            dist = new HotspotDistribution(lower_bound, upper_bound, hotsetFraction, hotOpnFraction);
+            dist = new HotspotDistribution(lower_bound, size, hotsetFraction, hotOpnFraction);
         }
 
         return dist;

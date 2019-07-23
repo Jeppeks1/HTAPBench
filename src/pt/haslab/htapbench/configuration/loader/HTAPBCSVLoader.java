@@ -22,6 +22,7 @@ import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
 import pt.haslab.htapbench.configuration.loader.pojo.*;
 import pt.haslab.htapbench.core.HTAPBenchmark;
 import pt.haslab.htapbench.random.RandomGenerator;
+import pt.haslab.htapbench.random.RandomParameters;
 import pt.haslab.htapbench.util.TPCCUtil;
 
 import java.io.*;
@@ -157,61 +158,6 @@ public class HTAPBCSVLoader extends Loader {
 
     } // end loadItem()
 
-    private int loadWhse(int whseKount) {
-
-        try {
-            now = new java.util.Date();
-            Warehouse warehouse = new Warehouse();
-
-            out = new PrintWriter(new FileOutputStream(warehousePath));
-
-            LOG.debug("\nStart Whse Load for " + whseKount + " Whses @ " + now + " ...");
-            LOG.debug("\nWriting Warehouse file to: " + warehousePath);
-
-            for (int i = 1; i <= whseKount; i++) {
-
-                warehouse.w_id = i;
-                warehouse.w_ytd = 300000;
-
-                // random within [0.0000 .. 0.2000]
-                warehouse.w_tax = (TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0;
-                warehouse.w_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, gen));
-                warehouse.w_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                warehouse.w_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                warehouse.w_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                warehouse.w_state = TPCCUtil.randomStr(3).toUpperCase();
-                warehouse.w_zip = "123456789";
-
-                String str = "";
-                str = str + warehouse.w_id + ",";
-                str = str + warehouse.w_ytd + ",";
-                str = str + warehouse.w_tax + ",";
-                str = str + warehouse.w_name + ",";
-                str = str + warehouse.w_street_1 + ",";
-                str = str + warehouse.w_street_2 + ",";
-                str = str + warehouse.w_city + ",";
-                str = str + warehouse.w_state + ",";
-                str = str + warehouse.w_zip;
-                out.println(str);
-            } // end for
-
-            now = new java.util.Date();
-
-            long tmpTime = new java.util.Date().getTime();
-            lastTimeMS = tmpTime;
-
-            LOG.debug("Elasped Time(ms): " + ((tmpTime - lastTimeMS) / 1000.000));
-            LOG.debug("End Whse Load @  " + now);
-
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return whseKount;
-
-    } // end loadWhse()
-
     private int loadStock(int whseKount, int itemKount) {
 
         int k = 0;
@@ -236,6 +182,7 @@ public class HTAPBCSVLoader extends Loader {
                     stock.s_i_id = i;
                     stock.s_w_id = w;
                     stock.s_quantity = TPCCUtil.randomNumber(10, 100, gen);
+                    stock.s_suppkey = TPCCUtil.randomNumber(1, 10000, gen);
                     stock.s_ytd = 0;
                     stock.s_order_cnt = 0;
                     stock.s_remote_cnt = 0;
@@ -269,6 +216,7 @@ public class HTAPBCSVLoader extends Loader {
                     str = str + stock.s_w_id + ",";
                     str = str + stock.s_i_id + ",";
                     str = str + stock.s_quantity + ",";
+                    str = str + stock.s_suppkey + ",";
                     str = str + stock.s_ytd + ",";
                     str = str + stock.s_order_cnt + ",";
                     str = str + stock.s_remote_cnt + ",";
@@ -313,74 +261,6 @@ public class HTAPBCSVLoader extends Loader {
 
     } // end loadStock()
 
-    private int loadDist(int whseKount, int distWhseKount) {
-
-        int k = 0;
-        int t;
-
-        try {
-            now = new java.util.Date();
-
-            out = new PrintWriter(new FileOutputStream(districtPath));
-            LOG.debug("\nWriting District file to: " + districtPath);
-
-            District district = new District();
-
-            t = (whseKount * distWhseKount);
-            LOG.debug("\nStart District Data for " + t + " Dists @ " + now + " ...");
-
-            for (int w = 1; w <= whseKount; w++) {
-                for (int d = 1; d <= distWhseKount; d++) {
-                    district.d_id = d;
-                    district.d_w_id = w;
-                    district.d_ytd = 30000;
-
-                    // random within [0.0000 .. 0.2000]
-                    district.d_tax = (float) ((TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0);
-
-                    district.d_next_o_id = 3001;
-                    district.d_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, gen));
-                    district.d_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                    district.d_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                    district.d_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
-                    district.d_state = TPCCUtil.randomStr(3).toUpperCase();
-                    district.d_zip = "123456789";
-
-                    k++;
-                    String str = "";
-                    str = str + district.d_w_id + ",";
-                    str = str + district.d_id + ",";
-                    str = str + district.d_ytd + ",";
-                    str = str + district.d_tax + ",";
-                    str = str + district.d_next_o_id + ",";
-                    str = str + district.d_name + ",";
-                    str = str + district.d_street_1 + ",";
-                    str = str + district.d_street_2 + ",";
-                    str = str + district.d_city + ",";
-                    str = str + district.d_state + ",";
-                    str = str + district.d_zip;
-                    out.println(str);
-                } // end for [d]
-            } // end for [w]
-
-            long tmpTime = new java.util.Date().getTime();
-            String etStr = "  Elasped Time(ms): " + ((tmpTime - lastTimeMS) / 1000.000) + "                    ";
-
-            lastTimeMS = tmpTime;
-            now = new java.util.Date();
-
-            LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
-            LOG.debug("End District Load @  " + now);
-
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return k;
-
-    } // end loadDist()
-
     /**
      * This method combines the semantics of loadCust and loadOrder into a single
      * method, so that the generated timestamps can be split evenly across the ORDER
@@ -401,12 +281,16 @@ public class HTAPBCSVLoader extends Loader {
         Oorder oorder = new Oorder();
         NewOrder new_order = new NewOrder();
         OrderLine order_line = new OrderLine();
+        District district = new District();
+        Warehouse warehouse = new Warehouse();
 
         PrintWriter outCust = null;
         PrintWriter outHist = null;
         PrintWriter outOrder = null;
         PrintWriter outNewOrder = null;
         PrintWriter outOrderLine = null;
+        PrintWriter outDist = null;
+        PrintWriter outWhse = null;
 
         try {
             LOG.debug("\nWriting Order file to: " + orderPath);
@@ -420,6 +304,8 @@ public class HTAPBCSVLoader extends Loader {
             outOrderLine = new PrintWriter(new FileOutputStream(orderLinePath));
             outCust = new PrintWriter(new FileOutputStream(customerPath));
             outHist = new PrintWriter(new FileOutputStream(historyPath));
+            outDist = new PrintWriter(new FileOutputStream(districtPath));
+            outWhse = new PrintWriter(new FileOutputStream(warehousePath));
 
             now = new Date();
 
@@ -427,12 +313,88 @@ public class HTAPBCSVLoader extends Loader {
             OrderLineCount = baseRowCount * 11; // Average of randomly generated value in [5,15], rounded up
             NewOrderCount = baseRowCount / 3; // A third of all NewOrder rows populated from ORDER
             total = baseRowCount * 3 + OrderLineCount + NewOrderCount; // BaseCount * 3: ORDER, CUSTOMER, HISTORY
+            total += whseKount + whseKount * distWhseKount; // WAREHOUSE and DISTRICT
 
             LOG.debug("\nStart timestamped Load for approx. " + total + " timestamped @ " + now + " ...");
 
             for (int w = 1; w <= whseKount; w++) {
 
+                // ***********************************************
+                //          Start of WAREHOUSE population
+                // ***********************************************
+
+                warehouse.w_id = w;
+                warehouse.w_ytd = 300000;
+
+                // random within [0.0000 .. 0.2000]
+                warehouse.w_tax = (TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0;
+                warehouse.w_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, gen));
+                warehouse.w_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                warehouse.w_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                warehouse.w_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                warehouse.w_state = TPCCUtil.randomStr(3).toUpperCase();
+                warehouse.w_zip = "123456789";
+
+                // The nationkey is selected via. an alternating region strategy. The entries are selected
+                // as the first nation in Africa, the first nation in Asia and so on. When all the regions
+                // are covered once, the second nation in each nation is chosen. The nationkey gets the
+                // values [1 .. 60], ... , [1 .. 60] as there are 60 nations in total.
+                warehouse.w_nationkey = (w - 1) % 60 + 1;
+
+                String str = "";
+                str = str + warehouse.w_id + ",";
+                str = str + warehouse.w_ytd + ",";
+                str = str + warehouse.w_tax + ",";
+                str = str + warehouse.w_name + ",";
+                str = str + warehouse.w_street_1 + ",";
+                str = str + warehouse.w_street_2 + ",";
+                str = str + warehouse.w_city + ",";
+                str = str + warehouse.w_state + ",";
+                str = str + warehouse.w_zip + ",";
+                str = str + warehouse.w_nationkey;
+                outWhse.println(str);
+
                 for (int d = 1; d <= distWhseKount; d++) {
+
+                    // ***********************************************
+                    //             Start of DISTRICT population
+                    // ***********************************************
+
+                    district.d_id = d;
+                    district.d_w_id = w;
+                    district.d_ytd = 30000;
+
+                    // random within [0.0000 .. 0.2000]
+                    district.d_tax = (float) ((TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0);
+
+                    district.d_next_o_id = 3001;
+                    district.d_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6, 10, gen));
+                    district.d_street_1 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                    district.d_street_2 = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                    district.d_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10, 20, gen));
+                    district.d_state = TPCCUtil.randomStr(3).toUpperCase();
+                    district.d_zip = "123456789";
+                    district.d_nationkey = RandomParameters.getDistrictNationKey(warehouse.w_nationkey, d);
+
+                    k++;
+                    str = "";
+                    str = str + district.d_w_id + ",";
+                    str = str + district.d_id + ",";
+                    str = str + district.d_ytd + ",";
+                    str = str + district.d_tax + ",";
+                    str = str + district.d_next_o_id + ",";
+                    str = str + district.d_name + ",";
+                    str = str + district.d_street_1 + ",";
+                    str = str + district.d_street_2 + ",";
+                    str = str + district.d_city + ",";
+                    str = str + district.d_state + ",";
+                    str = str + district.d_zip + ",";
+                    str = str + district.d_nationkey;
+                    outDist.println(str);
+
+                    // ***********************************************
+                    //          Prepare CUSTOMER population
+                    // ***********************************************
 
                     // TPC-C 4.3.3.1: o_c_id must be a permutation of [1, 3000]
                     int[] c_ids = new int[custDistKount];
@@ -456,7 +418,14 @@ public class HTAPBCSVLoader extends Loader {
                         //                Start of CUSTOMER population
                         // ***********************************************
 
-                        Timestamp sysdate = new Timestamp(clock.tick());
+                        // NOTE: The consistency of columns using the sysdate variable as the
+                        // datetime is not guaranteed: The columns are never used in either
+                        // the transactional or analytical queries. Enforcing consistency on
+                        // the variable would logically require that c_since <= o_entry_d,
+                        // which would skew the values of o_entry_d, which is often used.
+                        // This could of course be handled with some extra work, but that is
+                        // deemed unnecessary at this point.
+                        Timestamp sysdate = new Timestamp(clock.populateTick());
 
                         if (calibrate) {
                             counter.incrementAndGet();
@@ -465,7 +434,7 @@ public class HTAPBCSVLoader extends Loader {
                         customer.c_id = c;
                         customer.c_d_id = d;
                         customer.c_w_id = w;
-                        customer.c_discount = (TPCCUtil.randomNumber(0, 500, gen) / 1000.0); // [0.0000 ... 0.5000]
+                        customer.c_discount = RandomParameters.randDoubleBetween(0, 5000) / 10000; // [0.0000 ... 0.5000]
                         customer.c_first = TPCCUtil.randomStr(TPCCUtil.randomNumber(8, 16, gen));
                         customer.c_credit_lim = 50000;
                         customer.c_balance = -10;
@@ -493,7 +462,7 @@ public class HTAPBCSVLoader extends Loader {
                             customer.c_last = TPCCUtil.getNonUniformRandomLastNameForLoad(gen);
                         }
 
-                        String str = "";
+                        str = "";
                         str = str + customer.c_w_id + ",";
                         str = str + customer.c_d_id + ",";
                         str = str + customer.c_id + ",";
@@ -547,7 +516,7 @@ public class HTAPBCSVLoader extends Loader {
                         //                Start of ORDER population
                         // ***********************************************
 
-                        oorder.o_entry_d = clock.tick();
+                        oorder.o_entry_d = clock.populateTick();
                         Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
 
                         if (calibrate) {
@@ -559,7 +528,10 @@ public class HTAPBCSVLoader extends Loader {
                         oorder.o_d_id = d;
                         oorder.o_c_id = c_ids[c - 1];
                         oorder.o_ol_cnt = TPCCUtil.randomNumber(5, 15, gen);
-                        oorder.o_all_local = 1;
+
+                        // The variable o_all_local is used in the modified TPCH queries and should
+                        // therefore not be a constant value. Set 5 % of all orders as not all local.
+                        oorder.o_all_local = RandomParameters.randDoubleBetween(0, 100) <= 5 ? 0 : 1;
 
                         // o_carrier_id is set *only* for orders with ids < 2101 [4.3.3.1]
                         String o_carrier_id;
@@ -677,6 +649,8 @@ public class HTAPBCSVLoader extends Loader {
             outOrder.close();
             outNewOrder.close();
             outOrderLine.close();
+            outWhse.close();
+            outDist.close();
         }
 
         return k;
@@ -831,7 +805,7 @@ public class HTAPBCSVLoader extends Loader {
                 supplier.su_suppkey = index;
                 supplier.su_name = ran.astring(25, 25);
                 supplier.su_address = ran.astring(20, 40);
-                supplier.su_nationkey = nationkeys[ran.number(0, 61)];
+                supplier.su_nationkey = randomParam.getRandomNationKey();
                 supplier.su_phone = ran.nstring(15, 15);
                 supplier.su_acctbal = ran.fixedPoint(2, 10000., 10000000.);
                 supplier.su_comment = ran.astring(51, 101);
@@ -886,11 +860,9 @@ public class HTAPBCSVLoader extends Loader {
         long startTimeMS = new Date().getTime();
         lastTimeMS = startTimeMS;
 
-        long totalRows = loadWhse(numWarehouses);
-        totalRows += loadItem(configItemCount);
-        totalRows += loadStock(numWarehouses, configItemCount);
-        totalRows += loadDist(numWarehouses, configDistPerWhse);
+        long totalRows = loadItem(configItemCount);
         totalRows += loadTimestamped(numWarehouses, configDistPerWhse, configCustPerDist);
+        totalRows += loadStock(numWarehouses, configItemCount);
         totalRows += loadRegions();
         totalRows += loadNations();
         totalRows += loadSuppliers();

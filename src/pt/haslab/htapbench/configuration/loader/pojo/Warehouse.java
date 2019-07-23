@@ -45,6 +45,7 @@ public class Warehouse implements Serializable {
 	public String w_city;
 	public String w_state;
 	public String w_zip;
+	public int w_nationkey;
 
 	@Override
 	public String toString() {

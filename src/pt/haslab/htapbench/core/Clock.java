@@ -18,6 +18,7 @@
 package pt.haslab.htapbench.core;
 
 import java.sql.Timestamp;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
@@ -64,6 +65,18 @@ public class Clock {
      */
     public long tick() {
         return clock.addAndGet(deltaTs);
+    }
+
+    /**
+     * Generates a random long between the start and finish timestamp of the population
+     * phase. The size of the interval between the two timestamps are already defined
+     * with respect to deltaTs, so the tick() method in the population phase does not
+     * lead to a sudden promotion in timestamps.
+     *
+     * @return a random long between the start and finish timestamp of the population phase.
+     */
+    public long populateTick() {
+        return ThreadLocalRandom.current().nextLong(getStartTimestamp(), getFinalPopulatedTs());
     }
 
     /**
