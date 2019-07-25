@@ -39,6 +39,13 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q4 can be expressed as:
+ *
+ * Determine how many orders have been placed and how many items were
+ * requested in that order. Filter between a given time period and only
+ * for orders that have been delivered.
+ */
 public class Q4 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -57,15 +64,17 @@ public class Q4 extends GenericQuery {
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
         String query = "SELECT o_ol_cnt, "
-                +      "count(*) AS order_count "
-                +      "FROM " + HTAPBConstants.TABLENAME_ORDER
-                +     " WHERE o_entry_d >= '" + ts1.toString() + "' and o_entry_d < '" + ts2.toString()
-                +    "' AND exists (SELECT * "
-                +                  "FROM " + HTAPBConstants.TABLENAME_ORDERLINE
-                +                 " WHERE o_id = ol_o_id "
-                +                    "AND o_w_id = ol_w_id "
-                +                    "AND o_d_id = ol_d_id "
-                +                    "AND ol_delivery_d >= o_entry_d) "
+                +             "count(*) AS order_count "
+                +      "FROM " + HTAPBConstants.TABLENAME_ORDER + " "
+                +      "WHERE o_entry_d >= '" + ts1.toString() + "' "
+                +        "AND o_entry_d < '" + ts2.toString() + "' "
+                +        "AND EXISTS "
+                +                "(SELECT * "
+                +                 "FROM " + HTAPBConstants.TABLENAME_ORDERLINE + " "
+                +                 "WHERE o_id = ol_o_id "
+                +                   "AND o_w_id = ol_w_id "
+                +                   "AND o_d_id = ol_d_id "
+                +                   "AND ol_delivery_d >= o_entry_d) "
                 +      "GROUP BY o_ol_cnt "
                 +      "ORDER BY o_ol_cnt";
         return new SQLStmt(query);

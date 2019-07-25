@@ -45,12 +45,9 @@ public class Q1 extends GenericQuery {
         // Compute random number of days [60,120]
         int days = RandomParameters.randBetween(60, 120);
 
-        // Transform tpch into the correct TS in our populate.
-        long tpch = clock.getCurrentTs();
-
-        // Compute the correct TS considering the delay
-        long ts_plusXdays = clock.computeTsMinusXDays(tpch, days);
-        Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(ts_plusXdays));
+        // Calculate the correct offset and then convert to the correct timestamp
+        long ts_minusXdays = clock.computeEndMinusXDays(days);
+        Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(ts_minusXdays));
 
         String query = "SELECT ol_number, "
                 + "sum(ol_quantity) AS sum_qty, "
@@ -59,7 +56,7 @@ public class Q1 extends GenericQuery {
                 + "avg(ol_amount) AS avg_amount, "
                 + "count(*) AS count_order "
                 + "FROM " + HTAPBConstants.TABLENAME_ORDERLINE
-                + " WHERE ol_delivery_d > '"
+                + " WHERE ol_delivery_d <= '"
                 + ts.toString()
                 + "' GROUP BY ol_number "
                 + "ORDER BY ol_number";

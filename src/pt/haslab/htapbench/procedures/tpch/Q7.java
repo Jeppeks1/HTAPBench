@@ -38,12 +38,25 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q7 can be expressed as:
+ *
+ * Determine the total revenue of orders placed by a customer in one nation,
+ * but supplied by a supplier in another nation with a delivery date in a
+ * given range.
+ */
 public class Q7 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
 
-        String nation1 = random.getRandomNation();
-        String nation2 = random.getRandomNation();
+        // The nation should be within the same region
+        String region = random.getRandomRegion();
+        String nation1 = random.getRandomNation(region);
+        String nation2 = random.getRandomNation(region);
+
+        // Retry until the nations are different
+        if (nation1.equals(nation2))
+            buildQueryStmt(clock);
 
         long date1 = RandomParameters.convertDateToLong(1995, 1, 1);
         long date2 = RandomParameters.convertDateToLong(1996, 12, 31);
@@ -51,34 +64,38 @@ public class Q7 extends GenericQuery {
         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
-        String query = "SELECT su_nationkey AS supp_nation, "
-                +      "sum(ol_amount) AS revenue "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_SUPPLIER+  ", "
-                + HTAPBConstants.TABLENAME_STOCK +    ", "
-                + HTAPBConstants.TABLENAME_ORDERLINE+ ", "
-                + HTAPBConstants.TABLENAME_ORDER +    ", "
-                + HTAPBConstants.TABLENAME_CUSTOMER + ", "
-                + HTAPBConstants.TABLENAME_NATION   + " n1, "
-                + HTAPBConstants.TABLENAME_NATION   + " n2 "
-                + "WHERE ol_supply_w_id = s_w_id "
-                +   "AND ol_i_id = s_i_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_o_id = o_id "
-                +   "AND c_id = o_c_id "
-                +   "AND c_w_id = o_w_id "
-                +   "AND c_d_id = o_d_id "
-                +   "AND su_nationkey = n1.n_nationkey "
-                +   "AND substring(c_state,1,1) = substring(n2.n_name,1,1) "
-                +   "AND ((n1.n_name = '"+nation1+"' "
-                +         "AND n2.n_name = '"+nation2+"') "
-                +        "OR (n1.n_name = '"+nation2+"' "
-                +            "AND n2.n_name = '"+nation1+"')) "
-                +            "AND ol_delivery_d between '"+ts1.toString()+"' and '"+ts2.toString()
-                + "' GROUP BY su_nationkey "
-                + "ORDER BY su_nationkey"
-                ;
+        String query = "SELECT n1.n_name as su_nation, "
+                +             "n2.n_name as c_nation, "
+                +             "sum(ol_amount) AS revenue "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +      HTAPBConstants.TABLENAME_ORDER +    ", "
+                +      HTAPBConstants.TABLENAME_ORDERLINE+ ", "
+                +      HTAPBConstants.TABLENAME_STOCK +    ", "
+                +      HTAPBConstants.TABLENAME_DISTRICT + ", "
+                +      HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +      HTAPBConstants.TABLENAME_NATION   + " n1, "
+                +      HTAPBConstants.TABLENAME_NATION   + " n2 "
+                +      "WHERE c_w_id = o_w_id "
+                +        "AND c_d_id = o_d_id "
+                +        "AND c_id   = o_c_id "
+                +        "AND o_w_id = ol_w_id "
+                +        "AND o_d_id = ol_d_id "
+                +        "AND o_id   = ol_o_id "
+                +        "AND ol_supply_w_id = s_w_id "
+                +        "AND ol_i_id   = s_i_id "
+                +        "AND c_w_id  = d_w_id "
+                +        "AND c_d_id  = d_id "
+                +        "AND s_suppkey = su_suppkey "
+                +        "AND su_nationkey = n1.n_nationkey "
+                +        "AND d_nationkey  = n2.n_nationkey "
+                +        "AND ol_delivery_d between '" + ts1.toString() + "' and '" + ts2.toString() + "' "
+                +        "AND ((n1.n_name = '" + nation1 + "' AND n2.n_name = '" + nation2 + "') "
+                +             "OR (n1.n_name = '" + nation2 + "' AND n2.n_name = '" + nation1 + "')) "
+                +      "GROUP BY su_nationkey, "
+                +               "c_nation "
+                +      "ORDER BY su_nationkey, "
+                +               "c_nation";
         return new SQLStmt(query);
     }
 

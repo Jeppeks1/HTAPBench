@@ -36,15 +36,23 @@ import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
+import pt.haslab.htapbench.core.Worker;
 import pt.haslab.htapbench.random.RandomParameters;
+import pt.haslab.htapbench.types.DatabaseType;
+
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q15 can be expressed as:
+ *
+ * Determine which suppliers was responsible for the most overall revenue.
+ */
 public class Q15 extends GenericQuery {
 
-    private SQLStmt buildViewStmt(Clock clock){
+    private SQLStmt buildViewStmt(Worker owner, Clock clock){
         int year = RandomParameters.randBetween(1993, 1997);
 
         int month;
@@ -59,54 +67,58 @@ public class Q15 extends GenericQuery {
         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
-        String view = "CREATE view revenue0 (supplier_no, total_revenue) AS "
+        String view = "CREATE view revenue" + owner.getId() + " (supplier_no, total_revenue) AS "
                 +     "SELECT "
-                +         "mod((s_w_id * s_i_id),10000) as supplier_no, "
+                +         "su_suppkey as supplier_no, "
                 +         "sum(ol_amount) as total_revenue "
                 +     "FROM "
-                +     HTAPBConstants.TABLENAME_ORDERLINE +    ",  "
-                +     HTAPBConstants.TABLENAME_STOCK
-                +     " WHERE "
-                +         "ol_i_id = s_i_id "
-                +         "AND ol_supply_w_id = s_w_id "
-                +         "AND ol_delivery_d between '"+ts1.toString()+"' AND '"+ts2.toString()
-                +         "' GROUP BY "
-                +         "supplier_no";
+                +     HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +     HTAPBConstants.TABLENAME_STOCK + ", "
+                +     HTAPBConstants.TABLENAME_SUPPLIER + " "
+                +     "WHERE ol_supply_w_id = s_w_id "
+                +       "AND ol_i_id = s_i_id "
+                +       "AND s_suppkey = su_suppkey "
+                +       "AND ol_delivery_d between '" + ts1.toString() + "' AND '" + ts2.toString() + "' "
+                +     "GROUP BY supplier_no";
         return new SQLStmt(view);
     }
 
-    private SQLStmt buildQueryStmt(){
+    private SQLStmt buildQueryStmt(Worker owner){
         String query = "SELECT su_suppkey, "
-                +        "su_name, "
-                +        "su_address, "
-                +        "su_phone, "
-                +        "total_revenue "
-                + "FROM " + HTAPBConstants.TABLENAME_SUPPLIER +", revenue0 "
-                + "WHERE su_suppkey = supplier_no "
-                +     "AND total_revenue = (select max(total_revenue) from revenue0) "
-                + "ORDER BY su_suppkey";
+                +             "su_name, "
+                +             "su_address, "
+                +             "su_phone, "
+                +             "total_revenue "
+                +      "FROM " + HTAPBConstants.TABLENAME_SUPPLIER + ", revenue" + owner.getId() + " "
+                +      "WHERE su_suppkey = supplier_no "
+                +        "AND total_revenue = (SELECT max(total_revenue) "
+                +                             "FROM revenue" + owner.getId() + ") "
+                +      "ORDER BY su_suppkey";
+
         return new SQLStmt(query);
     }
 
-    private final SQLStmt dropview_stmt = new SQLStmt(
-            "DROP VIEW revenue0"
-    );
-
-    @Override
-    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
-        return buildQueryStmt();
+    private SQLStmt dropViewStmt(Worker owner) {
+        String query = "DROP VIEW revenue" + owner.getId();
+        return new SQLStmt(query);
     }
 
-    public int run(Connection conn,Clock clock,WorkloadConfiguration wrklConf) throws SQLException {
+    @Override
+    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
+        return buildQueryStmt(owner);
+    }
+
+    public int run(Connection conn, Clock clock, WorkloadConfiguration wrklConf) throws SQLException {
         // With this query, we have to set up a view before we execute the
         // query, then drop it once we're done.
+
         Statement stmt = conn.createStatement();
         int ret;
         try {
-            stmt.executeUpdate(buildViewStmt(clock).getSQL());
-            ret = super.run(conn,clock,wrklConf);
+            stmt.executeUpdate(buildViewStmt(owner, clock).getSQL());
+            ret = super.run(conn, clock, wrklConf);
         } finally {
-            stmt.executeUpdate(dropview_stmt.getSQL());
+            stmt.executeUpdate(dropViewStmt(owner).getSQL());
         }
 
         return ret;

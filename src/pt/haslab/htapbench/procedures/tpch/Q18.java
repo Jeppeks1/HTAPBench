@@ -38,35 +38,40 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q18 can be expressed as:
+ *
+ * Determine the revenue from large quantity orders for the top 100 customers.
+ */
 public class Q18 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
-        String amount = "" + RandomParameters.randDoubleBetween(312, 315);
+        String amount = "" + RandomParameters.randBetween(12, 15);
 
         String query = "SELECT c_last, "
-                +        "c_id, "
-                +        "o_id, "
-                +        "o_entry_d, "
-                +        "o_ol_cnt, "
-                +        "sum(ol_amount) AS amount_sum "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_CUSTOMER + ", "
-                + HTAPBConstants.TABLENAME_ORDER +    ", "
-                + HTAPBConstants.TABLENAME_ORDERLINE
-                + " WHERE c_id = o_c_id "
-                +   "AND c_w_id = o_w_id "
-                +   "AND c_d_id = o_d_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_o_id = o_id "
-                + "GROUP BY o_id, "
-                +          "o_w_id, "
-                +          "o_d_id, "
-                +          "c_id, "
-                +          "c_last, "
-                +          "o_entry_d, "
-                +          "o_ol_cnt HAVING sum(ol_amount) > "+amount+" "
-                + "ORDER BY amount_sum DESC, o_entry_d";
+                +             "c_id, "
+                +             "o_id, "
+                +             "o_entry_d, "
+                +             "o_ol_cnt, "
+                +             "sum(ol_amount) AS amount_sum "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +      HTAPBConstants.TABLENAME_ORDER +    ", "
+                +      HTAPBConstants.TABLENAME_ORDERLINE
+                +      " WHERE c_w_id = o_w_id "
+                +         "AND c_d_id = o_d_id "
+                +         "AND c_id   = o_c_id "
+                +         "AND o_w_id = ol_w_id "
+                +         "AND o_d_id = ol_d_id "
+                +         "AND o_id   = ol_o_id "
+                +         "AND ol_amount > " + amount + " "
+                +      "GROUP BY c_last, "
+                +               "c_id, "
+                +               "o_id, "
+                +               "o_entry_d, "
+                +               "o_ol_cnt "
+                +      "ORDER BY amount_sum DESC, o_entry_d "
+                +      "LIMIT 100";
         return new SQLStmt(query);
     }
 

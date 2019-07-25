@@ -39,6 +39,12 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q14 can be expressed as:
+ *
+ * Determine the revenue obtained from a promoted item as compared
+ * to when the item was promoted.
+ */
 public class Q14 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -51,13 +57,14 @@ public class Q14 extends GenericQuery {
         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
-        String query = "SELECT (100.00 * sum(CASE WHEN i_data LIKE 'PR%' THEN ol_amount ELSE 0 END) / (1 + sum(ol_amount))) AS promo_revenue "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_ORDERLINE + ", "
-                + HTAPBConstants.TABLENAME_ITEM
-                + " WHERE ol_i_id = i_id "
-                +   "AND ol_delivery_d >= '"+ts1.toString()+"' "
-                +   "AND ol_delivery_d < '"+ts2.toString()+"'";
+        String query = "SELECT (100.00 * sum( CASE WHEN i_data LIKE 'PR%' THEN ol_amount "
+                +                            "ELSE 0 END) / (1 + sum(ol_amount))) AS promo_revenue "
+                +      "FROM "
+                +       HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +       HTAPBConstants.TABLENAME_ITEM
+                +       " WHERE ol_i_id = i_id "
+                +         "AND ol_delivery_d >= '" + ts1.toString() + "' "
+                +         "AND ol_delivery_d < '" + ts2.toString() + "'";
         return new SQLStmt(query);
     }
 

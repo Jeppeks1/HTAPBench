@@ -38,23 +38,30 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q13 can be expressed as:
+ *
+ * Determine the distribution of customers by the number of orders they have made.
+ */
 public class Q13 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
         String id = "" + RandomParameters.randBetween(1, 10);
 
         String query = "SELECT c_count, "
-                +        "count(*) AS custdist "
-                + "FROM "
-                +   "(SELECT c_id, count(o_id) AS c_count "
-                +    "FROM " + HTAPBConstants.TABLENAME_CUSTOMER
-                +    " LEFT OUTER JOIN "+HTAPBConstants.TABLENAME_ORDER+" ON (c_w_id = o_w_id "
-                +                               "AND c_d_id = o_d_id "
-                +                               "AND c_id = o_c_id "
-                +                               "AND o_carrier_id > "+id+") "
-                +    "GROUP BY c_id) AS c_orders "
-                + "GROUP BY c_count "
-                + "ORDER BY custdist DESC, c_count DESC";
+                +      "count(*) AS custdist "
+                +      "FROM "
+                +        "(SELECT c_id, count(o_id) AS c_count "
+                +         "FROM " + HTAPBConstants.TABLENAME_CUSTOMER + " "
+                +         "LEFT OUTER JOIN " + HTAPBConstants.TABLENAME_ORDER + " "
+                +             " ON (c_w_id = o_w_id "
+                +              "AND c_d_id = o_d_id "
+                +              "AND c_id = o_c_id "
+                +              "AND o_carrier_id > " + id + ") "
+                +         "GROUP BY c_id) AS c_orders "
+                +      "GROUP BY c_count "
+                +      "ORDER BY custdist DESC,"
+                +               "c_count DESC";
         return new SQLStmt(query);
     }
 

@@ -38,37 +38,43 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q21 can be expressed as:
+ *
+ * Determine the number of customers waiting for an order to be delivered,
+ * by customer country and carrier id.
+ */
 public class Q21 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
 
         String nation = random.getRandomNation();
 
-        String query = "SELECT su_name, "
-                +        "count(*) AS numwait "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                + HTAPBConstants.TABLENAME_ORDERLINE +" l1, "
-                + HTAPBConstants.TABLENAME_ORDER + ", "
-                + HTAPBConstants.TABLENAME_STOCK + ", "
-                + HTAPBConstants.TABLENAME_NATION
-                + " WHERE ol_o_id = o_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_w_id = s_w_id "
-                +   "AND ol_i_id = s_i_id "
-                +   "AND l1.ol_delivery_d > o_entry_d "
-                +   "AND NOT EXISTS "
-                +     "(SELECT * "
-                +      "FROM "+HTAPBConstants.TABLENAME_ORDERLINE+" l2 "
-                +      "WHERE l2.ol_o_id = l1.ol_o_id "
-                +        "AND l2.ol_w_id = l1.ol_w_id "
-                +        "AND l2.ol_d_id = l1.ol_d_id "
-                +        "AND l2.ol_delivery_d > l1.ol_delivery_d) "
-                +   "AND su_nationkey = n_nationkey "
-                +   "AND n_name = '"+nation+"' "
-                + "GROUP BY su_name "
-                + "ORDER BY numwait DESC, su_name";
+        String query = "SELECT n_name, "
+            +                 "o_carrier_id, "
+            +                 "count(*) AS numwait "
+            +          "FROM "
+            +          HTAPBConstants.TABLENAME_CUSTOMER + ", "
+            +          HTAPBConstants.TABLENAME_ORDER + ", "
+            +          HTAPBConstants.TABLENAME_ORDERLINE + ", "
+            +          HTAPBConstants.TABLENAME_DISTRICT + ", "
+            +          HTAPBConstants.TABLENAME_NATION + " "
+            +          "WHERE c_w_id = o_w_id "
+            +            "AND c_d_id = o_d_id "
+            +            "AND c_id   = o_c_id "
+            +            "AND o_w_id = ol_w_id "
+            +            "AND o_d_id = ol_d_id "
+            +            "AND o_id   = ol_o_id "
+            +            "AND c_w_id = d_w_id "
+            +            "AND c_d_id = d_id "
+            +            "AND d_nationkey = n_nationkey "
+            +            "AND ol_delivery_d > o_entry_d "
+            +            "AND n_name = '" + nation + "' "
+            +          "GROUP BY n_name, "
+            +                   "o_carrier_id "
+            +          "ORDER BY numwait DESC, "
+            +                   "n_name, "
+            +                   "o_carrier_id";
         return new SQLStmt(query);
     }
 

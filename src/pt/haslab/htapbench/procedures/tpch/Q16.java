@@ -36,8 +36,13 @@ import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
-import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q16 can be expressed as:
+ *
+ * Determine how many suppliers can supply items with given attributes and not
+ * from a supplier that have had complaints registered.
+ */
 public class Q16 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
@@ -49,22 +54,20 @@ public class Q16 extends GenericQuery {
         String su_comment = "%" + random.getRandomSuComment() + "%";
 
         String query = "SELECT i_name, "
-                +        "substring(i_data from  1 for 3) AS brand, "
-                +        "i_price, "
-                +        "count(DISTINCT (mod((s_w_id * s_i_id),10000))) AS supplier_cnt "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_STOCK + ", "
-                + HTAPBConstants.TABLENAME_ITEM
-                + " WHERE i_id = s_i_id "
-                +   "AND i_data NOT LIKE '"+data+"' "
-                +   "AND (mod((s_w_id * s_i_id),10000) NOT IN "
-                +     "(SELECT su_suppkey "
-                +      "FROM "+HTAPBConstants.TABLENAME_SUPPLIER
-                +      " WHERE su_comment LIKE '"+su_comment+"')) "
-                + "GROUP BY i_name, "
-                +          "brand, "
-                +          "i_price "
-                + "ORDER BY supplier_cnt DESC";
+                +             "i_price, "
+                +             "count(DISTINCT s_suppkey) AS supplier_cnt "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_STOCK + ", "
+                +      HTAPBConstants.TABLENAME_ITEM + " "
+                +      "WHERE s_i_id = i_id "
+                +        "AND i_data NOT LIKE '" + data + "' "
+                +        "AND s_suppkey NOT IN "
+                +              "(SELECT su_suppkey "
+                +               "FROM "+HTAPBConstants.TABLENAME_SUPPLIER + " "
+                +               "WHERE su_comment LIKE '" + su_comment + "') "
+                +      "GROUP BY i_name, "
+                +               "i_price "
+                +      "ORDER BY supplier_cnt DESC";
         return new SQLStmt(query);
     }
 

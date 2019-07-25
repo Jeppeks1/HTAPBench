@@ -36,38 +36,45 @@ import pt.haslab.htapbench.benchmark.WorkloadConfiguration;
 import pt.haslab.htapbench.api.SQLStmt;
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
-import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q9 can be expressed as:
+ *
+ * Determine how much profit is made on a range of items, grouped by the
+ * supplier nation and order year.
+ */
 public class Q9 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
 
-        Character st1 = random.generateRandomCharacter();
         Character st2 = random.generateRandomCharacter();
+        Character st1 = random.generateRandomCharacter();
 
-        String data = st1.toString().toUpperCase() + st2.toString().toUpperCase();
-        data = "%" + data;
+        String i_data = "%" + st1 + st2;
 
         String query = "SELECT n_name, "
-                +      "sum(ol_amount) AS sum_profit "
-                + "FROM "
-                +  HTAPBConstants.TABLENAME_ITEM + ", "
-                +  HTAPBConstants.TABLENAME_STOCK + ", "
-                +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                +  HTAPBConstants.TABLENAME_ORDERLINE + ", "
-                +  HTAPBConstants.TABLENAME_ORDER +  ", "
-                +  HTAPBConstants.TABLENAME_NATION
-                + " WHERE ol_i_id = s_i_id "
-                +   "AND ol_supply_w_id = s_w_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_o_id = o_id "
-                +   "AND ol_i_id = i_id "
-                +   "AND su_nationkey = n_nationkey "
-                +   "AND i_data LIKE '" + data + "' "
-                + "GROUP BY n_name "
-                + "ORDER BY n_name "
-                + "DESC";
+                +             "YEAR(o_entry_d) AS o_year, "
+                +             "sum(ol_amount) AS sum_profit "
+                +      "FROM "
+                +       HTAPBConstants.TABLENAME_ORDER + ", "
+                +       HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +       HTAPBConstants.TABLENAME_STOCK + ", "
+                +       HTAPBConstants.TABLENAME_ITEM + ", "
+                +       HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +       HTAPBConstants.TABLENAME_NATION + " "
+                +      "WHERE o_w_id = ol_w_id "
+                +        "AND o_d_id = ol_d_id "
+                +        "AND o_id   = ol_o_id "
+                +        "AND ol_supply_w_id = s_w_id "
+                +        "AND ol_i_id = s_i_id "
+                +        "AND s_i_id  = i_id "
+                +        "AND s_suppkey = su_suppkey "
+                +        "AND su_nationkey = n_nationkey "
+                +        "AND i_data LIKE '" + i_data + "' "
+                +      "GROUP BY n_name, "
+                +               "o_year "
+                +      "ORDER BY n_name, "
+                +               "o_year";
         return new SQLStmt(query);
     }
 

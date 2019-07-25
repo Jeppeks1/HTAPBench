@@ -39,39 +39,52 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.text.DecimalFormat;
 
+/**
+ * The business question of Q11 can be expressed as:
+ *
+ * Find the most valuable item assets in stock supplied from a given nation,
+ * where the value is defined as the number of items in stock times the price
+ * of that item. Only assets above a certain threshold is reported on.
+ */
 public class Q11 extends GenericQuery {
 
-    private SQLStmt buildQueryStmt(WorkloadConfiguration wrklConf){
+    private SQLStmt buildQueryStmt(){
 
-        String nation1 = random.getRandomNation();
+        String nation = random.getRandomNation();
 
-        double frac = 0.0001 / wrklConf.getScaleFactor();
-        String fraction = "" + new DecimalFormat("#.#####").format(frac);
+        double frac = RandomParameters.randDoubleBetween(0, 5) / 100000;
+        String fraction = new DecimalFormat("#.###########").format(frac).replace(',', '.');
 
         String query = "SELECT s_i_id, "
-                +        "sum(s_order_cnt) AS ordercount "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_STOCK + ", "
-                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                + HTAPBConstants.TABLENAME_NATION
-                + " WHERE "
-                +   "su_nationkey = n_nationkey "
-                +   "AND n_name = '"+nation1+"' "
-                + "GROUP BY s_i_id HAVING sum(s_order_cnt) > "
-                +   "(SELECT sum(s_order_cnt) * "+fraction+" "
-                +    "FROM "
-                +    HTAPBConstants.TABLENAME_STOCK + ", "
-                +    HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                +    HTAPBConstants.TABLENAME_NATION
-                +    " WHERE "
-                +      "su_nationkey = n_nationkey "
-                +      "AND n_name = '"+nation1+"') "
-                + "ORDER BY ordercount DESC";
+                +             "sum(i_price * s_quantity) AS value "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_ITEM + ", "
+                +      HTAPBConstants.TABLENAME_STOCK + ", "
+                +      HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +      HTAPBConstants.TABLENAME_NATION + " "
+                +      "WHERE i_id = s_i_id "
+                +        "AND s_suppkey = su_suppkey "
+                +        "AND su_nationkey = n_nationkey "
+                +        "AND n_name = '" + nation + "' "
+                +      "GROUP BY s_i_id "
+                +      "HAVING sum(i_price * s_quantity) > ( "
+                +              "SELECT sum(i_price * s_quantity) * " + fraction + " "
+                +              "FROM "
+                +               HTAPBConstants.TABLENAME_ITEM + ", "
+                +               HTAPBConstants.TABLENAME_STOCK + ", "
+                +               HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +               HTAPBConstants.TABLENAME_NATION + " "
+                +              "WHERE i_id = s_i_id "
+                +                "AND s_suppkey = su_suppkey "
+                +                "AND su_nationkey = n_nationkey "
+                +                "AND n_name = '" + nation + "') "
+                +      "ORDER BY value DESC";
+
         return new SQLStmt(query);
     }
 
     @Override
     protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
-        return buildQueryStmt(wrklConf);
+        return buildQueryStmt();
     }
 }

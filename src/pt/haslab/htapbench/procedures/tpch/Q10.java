@@ -39,6 +39,13 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q10 can be expressed as:
+ *
+ * Identify the customers who have placed an order, which was not fully
+ * supplied by the local warehouse and determine the sum of payments received
+ * from such orders. Only the 20 first entries are retrieved.
+ */
 public class Q10 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -47,8 +54,7 @@ public class Q10 extends GenericQuery {
         int month;
         if (year == 1993)
             month = RandomParameters.randBetween(3, 12);
-
-        if (year == 1995)
+        else if (year == 1995)
             month = RandomParameters.randBetween(1, 10);
         else
             month = RandomParameters.randBetween(1, 12);
@@ -60,32 +66,38 @@ public class Q10 extends GenericQuery {
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
         String query = "SELECT c_id, "
-                +        "c_last, "
-                +        "sum(ol_amount) AS revenue, "
-                +        "c_city, "
-                +        "c_phone, "
-                +        "n_name "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_CUSTOMER + ", "
-                + HTAPBConstants.TABLENAME_ORDER +    ", "
-                + HTAPBConstants.TABLENAME_ORDERLINE +", "
-                + HTAPBConstants.TABLENAME_NATION
-                + " WHERE c_id = o_c_id "
-                +   "AND c_w_id = o_w_id "
-                +   "AND c_d_id = o_d_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_o_id = o_id "
-                +   "AND o_entry_d >= '"+ts1.toString()+"' "
-                +   "AND o_entry_d < '"+ts2.toString()+"' "
-                +   "AND o_entry_d <= ol_delivery_d "
-                +   "AND n_nationkey = ascii(substring(c_state from  1  for  1)) "
-                + "GROUP BY c_id, "
-                +          "c_last, "
-                +          "c_city, "
-                +          "c_phone, "
-                +          "n_name "
-                + "ORDER BY revenue DESC";
+                +             "c_first, "
+                +             "c_balance, "
+                +             "n_name, "
+                +             "c_phone, "
+                +             "c_data, "
+                +             "sum(ol_amount) AS revenue "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +      HTAPBConstants.TABLENAME_ORDER + ", "
+                +      HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +      HTAPBConstants.TABLENAME_DISTRICT + ", "
+                +      HTAPBConstants.TABLENAME_NATION + " "
+                +      "WHERE c_w_id = o_w_id "
+                +        "AND c_d_id = o_d_id "
+                +        "AND c_id   = o_c_id "
+                +        "AND o_w_id = ol_w_id "
+                +        "AND o_d_id = ol_d_id "
+                +        "AND o_id   = ol_o_id "
+                +        "AND c_w_id  = d_w_id "
+                +        "AND c_d_id  = d_id "
+                +        "AND d_nationkey = n_nationkey "
+                +        "AND o_entry_d >= '" + ts1.toString() + "' "
+                +        "AND o_entry_d < '" + ts2.toString() + "' "
+                +        "AND o_all_local = 0 "
+                +      "GROUP BY c_id, "
+                +               "c_first, "
+                +               "c_balance, "
+                +               "n_name, "
+                +               "c_phone, "
+                +               "c_data "
+                +      "ORDER BY revenue DESC "
+                +      "LIMIT 20";
         return new SQLStmt(query);
     }
 

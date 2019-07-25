@@ -37,6 +37,12 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q21 can be expressed as:
+ *
+ * Find the customers grouped by nation that have a greater than average
+ * account balance, within a specific set of phone-country codes.
+ */
 public class Q22 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
@@ -49,38 +55,38 @@ public class Q22 extends GenericQuery {
         String code6 = random.getRandomPhoneCountryCode();
         String code7 = random.getRandomPhoneCountryCode();
 
-        String query = "SELECT substring(c_state from 1 for 1) AS country, "
-                + "count(*) AS numcust, "
-                + "sum(c_balance) AS totacctbal "
-                + "FROM " +HTAPBConstants.TABLENAME_CUSTOMER
-                + " WHERE substring(c_phone from 1 for 2) IN ('"+code1+"', "
-                +                                    "'"+code2+"', "
-                +                                    "'"+code3+"', "
-                +                                    "'"+code4+"', "
-                +                                    "'"+code5+"', "
-                +                                    "'"+code6+"', "
-                +                                    "'"+code7+"') "
-                +   "AND c_balance > "
-                +     "(SELECT avg(c_balance) "
+        String query = "SELECT n_name, "
+                +             "count(*) AS numcust, "
+                +             "sum(c_balance) AS totacctbal "
                 +      "FROM "
-                +      HTAPBConstants.TABLENAME_CUSTOMER
-                +      " WHERE c_balance > 0.00 "
-                +      "AND substring(c_phone from 1 for 2) IN ('"+code1+"',"
-                +                                              "'"+code2+"',"
-                +                                              "'"+code3+"',"
-                +                                              "'"+code4+"',"
-                +                                              "'"+code5+"',"
-                +                                              "'"+code6+"',"
-                +                                              "'"+code7+"')) "
-                +   "AND NOT EXISTS "
-                +     "(SELECT * "
-                +      "FROM "
-                +      HTAPBConstants.TABLENAME_ORDER
-                +      " WHERE o_c_id = c_id "
-                +        "AND o_w_id = c_w_id "
-                +        "AND o_d_id = c_d_id) "
-                + "GROUP BY substring(c_state from 1 for 1) "
-                + "ORDER BY substring(c_state,1,1)";
+                +       HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +       HTAPBConstants.TABLENAME_DISTRICT + ", "
+                +       HTAPBConstants.TABLENAME_NATION + " "
+                +      "WHERE c_w_id = d_w_id "
+                +        "AND c_d_id = d_id "
+                +        "AND d_nationkey = n_nationkey "
+                +        "AND substring(c_phone from 1 for 2) IN "
+                +                     "('" + code1 + "', "
+                +                      "'" + code2 + "', "
+                +                      "'" + code3 + "', "
+                +                      "'" + code4 + "', "
+                +                      "'" + code5 + "', "
+                +                      "'" + code6 + "', "
+                +                      "'" + code7 + "') "
+                +        "AND c_balance > "
+                +          "(SELECT avg(c_balance) "
+                +           "FROM " + HTAPBConstants.TABLENAME_CUSTOMER + " "
+                +           "WHERE c_balance > 0.00 "
+                +             "AND substring(c_phone from 1 for 2) IN "
+                +                          "('" + code1 + "',"
+                +                           "'" + code2 + "',"
+                +                           "'" + code3 + "',"
+                +                           "'" + code4 + "',"
+                +                           "'" + code5 + "',"
+                +                           "'" + code6 + "',"
+                +                           "'" + code7 + "')) "
+                +      "GROUP BY n_name "
+                +      "ORDER BY n_name ";
         return new SQLStmt(query);
     }
 

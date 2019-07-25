@@ -39,6 +39,12 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q20 can be expressed as:
+ *
+ * Find the suppliers who have supplied warehouses, that now have an excess of a given
+ * item available in stock.
+ */
 public class Q20 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -54,25 +60,33 @@ public class Q20 extends GenericQuery {
         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
-        String query = "SELECT su_name, "
-                +        "su_address "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                + HTAPBConstants.TABLENAME_NATION
-                + " WHERE su_suppkey IN "
-                +     "(SELECT mod(s_i_id * s_w_id, 10000) "
-                +      "FROM " + HTAPBConstants.TABLENAME_STOCK
-                +      " INNER JOIN "+ HTAPBConstants.TABLENAME_ITEM+" ON i_id = s_i_id "
-                +      "INNER JOIN "+HTAPBConstants.TABLENAME_ORDERLINE+" ON ol_i_id = s_i_id "
-                +      "WHERE ol_delivery_d >= '"+ts1.toString()+"' "
-                +      "AND ol_delivery_d < '"+ts2.toString()+"' "
-                +        "AND i_data LIKE '"+char1+"' "
-                +      "GROUP BY s_i_id, "
-                +               "s_w_id, "
-                +               "s_quantity HAVING 2*s_quantity > sum(ol_quantity)) "
-                +   "AND su_nationkey = n_nationkey "
-                +   "AND n_name = '"+nation+"' "
-                + "ORDER BY su_name";
+        String query = "SELECT n_name, "
+                +             "su_address "
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +      HTAPBConstants.TABLENAME_STOCK + ", "
+                +      HTAPBConstants.TABLENAME_ITEM + ", "
+                +      HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +      HTAPBConstants.TABLENAME_NATION + " "
+                +      "WHERE ol_supply_w_id = s_w_id "
+                +        "AND ol_i_id = s_i_id "
+                +        "AND s_i_id = i_id "
+                +        "AND s_suppkey = su_suppkey "
+                +        "AND su_nationkey = n_nationkey "
+                +        "AND n_name = '" + nation + "' "
+                +        "AND ol_delivery_d >= '" + ts1.toString() + "' "
+                +        "AND ol_delivery_d < '" + ts2.toString() + "' "
+                +        "AND i_data LIKE '" + char1 + "' "
+                +        "AND s_quantity > ( "
+                +                    "SELECT avg(s_quantity) "
+                +                    "FROM "
+                +                     HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +                     HTAPBConstants.TABLENAME_STOCK + " "
+                +                    "WHERE ol_supply_w_id = s_w_id "
+                +                      "AND ol_i_id = s_i_id "
+                +                      "AND ol_delivery_d >= '" + ts1.toString() + "' "
+                +                      "AND ol_delivery_d < '" + ts2.toString() + "') "
+                +      "ORDER BY su_name, su_address";
         return new SQLStmt(query);
     }
 

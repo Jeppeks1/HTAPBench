@@ -121,11 +121,19 @@ public class Clock {
     }
 
     /**
-     * Computes Timestamp - days.
+     * Offsets the TPC-H enddate with ´days` days.
+     *
+     * The enddate can be used in this context, because the specification
+     * of Q1 states that the largest possible delivery date should be used.
+     * TPC-H actually uses enddate - 30 days as the maximum delivery date,
+     * but this distinction is not included in the Loader class, meaning
+     * the very last timestamp can be used to set the delivery date.
+     *
+     * @param days timestamp offset in days
+     * @return the TPCH timestamp offset with ´days´ days
      */
-    public long computeTsMinusXDays(long ts, int days) {
-        long daysInLong = days * 24 * 60 * 60 * 1000;
-        return ts - daysInLong;
+    public long computeEndMinusXDays(int days) {
+        long daysInLong = days * 24 * 60 * 60 * 1000L;
+        return tpch_end_date - daysInLong;
     }
-
 }

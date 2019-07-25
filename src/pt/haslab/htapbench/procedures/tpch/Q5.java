@@ -38,6 +38,12 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q5 can be expressed as:
+ *
+ * Find the revenue volume for each nation in a given region that resulted
+ * from an order where the supplier and customer reside within the same nation.
+ */
 public class Q5 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -53,30 +59,35 @@ public class Q5 extends GenericQuery {
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
         String query = "SELECT n_name, "
-                +      "sum(ol_amount) AS revenue "
-                + "FROM "
-                +  HTAPBConstants.TABLENAME_CUSTOMER + ", "
-                +  HTAPBConstants.TABLENAME_ORDER +    ", "
-                +  HTAPBConstants.TABLENAME_ORDERLINE+ ", "
-                +  HTAPBConstants.TABLENAME_STOCK +    ", "
-                +  HTAPBConstants.TABLENAME_SUPPLIER + ", "
-                +  HTAPBConstants.TABLENAME_NATION +   ", "
-                +  HTAPBConstants.TABLENAME_REGION
-                + " WHERE c_id = o_c_id "
-                +   "AND c_w_id = o_w_id "
-                +   "AND c_d_id = o_d_id "
-                +   "AND ol_o_id = o_id "
-                +   "AND ol_w_id = o_w_id "
-                +   "AND ol_d_id = o_d_id "
-                +   "AND ol_w_id = s_w_id "
-                +   "AND ol_i_id = s_i_id "
-                +   "AND su_nationkey = n_nationkey "
-                +   "AND n_regionkey = r_regionkey "
-                +   "AND r_name = '"+region+"' "
-                +   "AND o_entry_d >= '"+ts1.toString()+"' "
-                +   "AND o_entry_d < '"+ts2.toString()+"' "
-                + "GROUP BY n_name "
-                + "ORDER BY revenue DESC";
+                +             "sum(ol_amount) AS revenue "
+                +      "FROM "
+                +       HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +       HTAPBConstants.TABLENAME_ORDER +    ", "
+                +       HTAPBConstants.TABLENAME_ORDERLINE+ ", "
+                +       HTAPBConstants.TABLENAME_STOCK + ", "
+                +       HTAPBConstants.TABLENAME_DISTRICT + ", "
+                +       HTAPBConstants.TABLENAME_SUPPLIER + ", "
+                +       HTAPBConstants.TABLENAME_NATION +   ", "
+                +       HTAPBConstants.TABLENAME_REGION + " "
+                +      "WHERE c_w_id  = o_w_id "
+                +        "AND c_d_id  = o_d_id "
+                +        "AND c_id    = o_c_id "
+                +        "AND ol_o_id = o_id "
+                +        "AND ol_w_id = o_w_id "
+                +        "AND ol_d_id = o_d_id "
+                +        "AND ol_supply_w_id = s_w_id "
+                +        "AND ol_i_id = s_i_id "
+                +        "AND c_w_id  = d_w_id "
+                +        "AND c_d_id  = d_id "
+                +        "AND s_suppkey = su_suppkey "
+                +        "AND su_nationkey = d_nationkey "
+                +        "AND su_nationkey = n_nationkey "
+                +        "AND n_regionkey  = r_regionkey "
+                +        "AND r_name = '" + region + "' "
+                +        "AND o_entry_d >= '" + ts1.toString() + "' "
+                +        "AND o_entry_d < '" + ts2.toString() + "' "
+                +      "GROUP BY n_name "
+                +      "ORDER BY revenue DESC";
         return new SQLStmt(query);
     }
 

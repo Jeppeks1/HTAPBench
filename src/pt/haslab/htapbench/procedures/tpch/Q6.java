@@ -40,11 +40,31 @@ import pt.haslab.htapbench.random.RandomParameters;
 
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q6 can be expressed as:
+ *
+ * Find the revenue increase for orders if the customer's discount had been
+ * eliminated for a given percentage range in a given year.
+ */
 public class Q6 extends GenericQuery {
 
-    private SQLStmt buildQueryStmt(Clock clock) {
-        String q1 = "" + RandomParameters.randBetween(1, 100000);
-        String q2 = "" + RandomParameters.randBetween(1, 100000);
+    private SQLStmt buildQueryStmt(Clock clock, boolean hybridWkrld){
+        double discount1;
+        double discount2;
+
+        double d1 = RandomParameters.randDoubleBetween(2, 9) / 100 - 0.01;
+        double d2 = RandomParameters.randDoubleBetween(2, 9) / 100 - 0.01;
+
+        // At least some SQL flavours requires the first expression in the
+        // BETWEEN clause to be less than or equal to the second expression,
+        // in order to produce a non-null result-set.
+        if (d1 > d2){
+            discount1 = d2;
+            discount2 = d1;
+        } else {
+            discount1 = d1;
+            discount2 = d2;
+        }
 
         int year = RandomParameters.randBetween(1993, 1997);
 
@@ -54,16 +74,26 @@ public class Q6 extends GenericQuery {
         Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
         Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
 
-        String query = "SELECT sum(ol_amount) AS revenue "
-                + "FROM  " + HTAPBConstants.TABLENAME_ORDERLINE
-                + " WHERE ol_delivery_d >= '" + ts1 + "' "
-                + "AND ol_delivery_d < '" + ts2 + "' "
-                + "AND ol_quantity BETWEEN " + q1 + " AND " + q2;
+        String query = "SELECT sum(ol_amount * c_discount) AS revenue "
+                +      "FROM "
+                +       HTAPBConstants.TABLENAME_CUSTOMER + ", "
+                +       HTAPBConstants.TABLENAME_ORDER + ", "
+                +       HTAPBConstants.TABLENAME_ORDERLINE + " "
+                +      "WHERE c_w_id = o_w_id "
+                +        "AND c_d_id = o_d_id "
+                +        "AND c_id   = o_c_id "
+                +        "AND o_w_id = ol_w_id "
+                +        "AND o_d_id = ol_d_id "
+                +        "AND o_id   = ol_o_id "
+                +        "AND c_discount BETWEEN " + discount1 + " AND " + discount2 + " "
+                +        "AND ol_delivery_d >= '" + ts1 + "' "
+                +        "AND ol_delivery_d < '" + ts2 + "' ";
+
         return new SQLStmt(query);
     }
 
     @Override
-    protected SQLStmt get_query(Clock clock, WorkloadConfiguration wrklConf) {
-        return buildQueryStmt(clock);
+    protected SQLStmt get_query(Clock clock,WorkloadConfiguration wrklConf) {
+        return buildQueryStmt(clock, wrklConf.getHybridWorkload());
     }
 }

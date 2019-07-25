@@ -38,24 +38,31 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q17 can be expressed as:
+ *
+ * Determine how much revenue would be lost if orders were no longer filled for small
+ * quantities of certain parts.
+ */
 public class Q17 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
 
-        String st1 = "%" + random.generateRandomCharacter();
+        String i_data = "%" + random.generateRandomCharacter();
 
         String query = "SELECT SUM(ol_amount) / 2.0 AS avg_yearly "
-                + "FROM "+ HTAPBConstants.TABLENAME_ORDERLINE + ", "
-                +   "(SELECT i_id, AVG (ol_quantity) AS a "
-                +    "FROM "
-                +    HTAPBConstants.TABLENAME_ITEM + ", "
-                +    HTAPBConstants.TABLENAME_ORDERLINE
-                +    " WHERE i_data LIKE '"+st1+"' "
-                +      "AND ol_i_id = i_id "
-                +    "GROUP BY i_id) t "
-                + "WHERE ol_i_id = t.i_id "
-                +   "AND ol_quantity < t.a";
-        return new SQLStmt(query);
+            +          "FROM "
+            +           HTAPBConstants.TABLENAME_ORDERLINE + ", "
+            +           HTAPBConstants.TABLENAME_ITEM + " "
+            +          "WHERE ol_i_id = i_id "
+            +            "AND i_data LIKE '" + i_data + "' "
+            +            "AND ol_quantity < "
+            +                  "(SELECT AVG(i_price) * 0.2 AS avg_price "
+            +                   "FROM " + HTAPBConstants.TABLENAME_ITEM + " "
+            +                   "WHERE i_id = ol_i_id "
+            +                     "AND i_data LIKE '" + i_data + "' "
+            +                   "GROUP BY i_id, i_price)";
+       return new SQLStmt(query);
     }
 
     @Override

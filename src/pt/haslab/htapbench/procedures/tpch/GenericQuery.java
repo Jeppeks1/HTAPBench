@@ -48,8 +48,8 @@ public abstract class GenericQuery extends Procedure {
 
     protected static final Logger LOG = Logger.getLogger(GenericQuery.class);
 
-    private PreparedStatement stmt;
-    private Worker owner;
+    public PreparedStatement stmt;
+    protected Worker owner;
 
     public void setOwner(Worker w) {
         this.owner = w;
@@ -101,17 +101,7 @@ public abstract class GenericQuery extends Procedure {
         }
 
         // ----------------------------------------
-        //           Validation Exceptions
-        // ----------------------------------------
-        // Some queries are inherently designed in such a way that an InvalidResultException
-        // would always be thrown. This is especially true for pure OLAP workloads, which is
-        // often dependent on OLTP workloads having modified a particular value. The validation
-        // of such queries are simply skipped.
-
-
-
-        // ----------------------------------------
-        //            Actual Validation
+        //               Validation
         // ----------------------------------------
 
         // Check that non-zero rows are returned in the ResultSet

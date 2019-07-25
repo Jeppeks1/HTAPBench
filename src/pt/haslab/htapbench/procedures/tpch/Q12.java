@@ -39,6 +39,11 @@ import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 import java.sql.Timestamp;
 
+/**
+ * The business question of Q12 can be expressed as:
+ *
+ * Determine the impact of selecting different carriers.
+ */
 public class Q12 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(Clock clock){
@@ -61,7 +66,6 @@ public class Q12 extends GenericQuery {
                 + " WHERE ol_w_id = o_w_id "
                 +   "AND ol_d_id = o_d_id "
                 +   "AND ol_o_id = o_id "
-                +   "AND o_entry_d <= ol_delivery_d "
                 +   "AND ol_delivery_d >= '"+ts1.toString()+"' "
                 +   "AND ol_delivery_d < '"+ts2.toString()+"' "
                 + "GROUP BY o_ol_cnt "

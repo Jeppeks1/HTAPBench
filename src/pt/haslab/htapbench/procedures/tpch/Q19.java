@@ -38,6 +38,12 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.core.Clock;
 import pt.haslab.htapbench.random.RandomParameters;
 
+/**
+ * The business question of Q19 can be expressed as:
+ *
+ * Find the revenue attributed to items satisfying a particular quantity,
+ * pricing and warehouse requirement.
+ */
 public class Q19 extends GenericQuery {
 
     private SQLStmt buildQueryStmt(){
@@ -50,32 +56,32 @@ public class Q19 extends GenericQuery {
         int price22 = price2 + 10;
         int price32 = price3 + 10;
 
-        String char1 = "%" + random.generateRandomCharacter();
-        String char2 = "%" + random.generateRandomCharacter();
-        String char3 = "%" + random.generateRandomCharacter();
+        String i_data1 = "%" + random.generateRandomCharacter();
+        String i_data2 = "%" + random.generateRandomCharacter();
+        String i_data3 = "%" + random.generateRandomCharacter();
 
         String query = "SELECT sum(ol_amount) AS revenue "
-                + "FROM "
-                + HTAPBConstants.TABLENAME_ORDERLINE + ", "
-                + HTAPBConstants.TABLENAME_ITEM
-                + " WHERE (ol_i_id = i_id "
-                +        "AND i_data LIKE '"+char1+"' "
-                +        "AND ol_quantity >="+ 1
-                +        " AND ol_quantity <="+ 5
-                +        " AND i_price BETWEEN "+price1+" AND "+ price12
-                +        " AND ol_w_id IN (1, 2, 3)) "
-                +   "OR (ol_i_id = i_id "
-                +       "AND i_data LIKE '"+char2+"' "
-                +       "AND ol_quantity >="+ 1
-                +       " AND ol_quantity <= "+ 10
-                +       " AND i_price BETWEEN "+price2+" AND " + price22
-                +       " AND ol_w_id IN (1, 2, 4)) "
-                +   "OR (ol_i_id = i_id "
-                +       "AND i_data LIKE '"+char3+"' "
-                +       "AND ol_quantity >="+ 1
-                +       " AND ol_quantity <= "+ 15
-                +       " AND i_price BETWEEN "+price3+" AND "+price32
-                +       " AND ol_w_id IN (1, 5, 3))";
+                +      "FROM "
+                +      HTAPBConstants.TABLENAME_ORDERLINE + ", "
+                +      HTAPBConstants.TABLENAME_ITEM + " "
+                +      "WHERE (ol_i_id = i_id "
+                +             "AND i_data LIKE '" + i_data1 + "' "
+                +             "AND ol_quantity >=" + 1 + " "
+                +             "AND ol_quantity <=" + 5 + " "
+                +             "AND i_price BETWEEN "+ price1 + " AND "+ price12 + " "
+                +             "AND ol_w_id IN (1, 2, 3)) "
+                +         "OR (ol_i_id = i_id "
+                +             "AND i_data LIKE '" + i_data2 + "' "
+                +             "AND ol_quantity >=" + 1 + " "
+                +             "AND ol_quantity <= " + 10 + " "
+                +             "AND i_price BETWEEN " + price2 + " AND " + price22 + " "
+                +             "AND ol_w_id IN (1, 2, 4)) "
+                +         "OR (ol_i_id = i_id "
+                +             "AND i_data LIKE '" + i_data3 + "' "
+                +             "AND ol_quantity >=" + 1 + " "
+                +             "AND ol_quantity <= " + 15 + " "
+                +             "AND i_price BETWEEN " + price3 + " AND " + price32 + " "
+                +             "AND ol_w_id IN (1, 5, 3))";
         return new SQLStmt(query);
     }
 
