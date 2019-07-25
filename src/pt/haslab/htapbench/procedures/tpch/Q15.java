@@ -64,8 +64,8 @@ public class Q15 extends GenericQuery {
         long date1 = RandomParameters.convertDateToLong(year, month, 1);
         long date2 = RandomParameters.addMonthsToDate(date1, 3);
 
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+        Timestamp ts1 = new Timestamp(clock.transformDeliveryTsToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformDeliveryTsToLong(date2));
 
         String view = "CREATE view revenue" + owner.getId() + " (supplier_no, total_revenue) AS "
                 +     "SELECT "

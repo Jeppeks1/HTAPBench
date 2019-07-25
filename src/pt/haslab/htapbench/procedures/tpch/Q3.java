@@ -55,7 +55,7 @@ public class Q3 extends GenericQuery {
         int day = RandomParameters.randBetween(1, 31);
         long date = RandomParameters.convertDateToLong(1995, 3, day);
 
-        Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(date));
+        Timestamp ts = new Timestamp(clock.transformOrderTsToLong(date));
 
         String region = random.getRandomRegion();
 

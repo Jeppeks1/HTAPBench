@@ -205,7 +205,7 @@ public class NewOrder extends TPCCProcedure {
 				w.getTsCounter().incrementAndGet();
 				stmtInsertOOrder.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
 			} else {
-				Timestamp ts = new Timestamp(w.getClock().tick());
+				Timestamp ts = new Timestamp(w.getClock().newOrdertick());
 				stmtInsertOOrder.setTimestamp(5, ts);
 			}
 

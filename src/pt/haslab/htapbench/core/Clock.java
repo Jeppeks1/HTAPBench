@@ -20,6 +20,7 @@ package pt.haslab.htapbench.core;
 import java.sql.Timestamp;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
+
 import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.benchmark.AuxiliarFileHandler;
 import pt.haslab.htapbench.util.FileUtil;
@@ -32,51 +33,61 @@ import pt.haslab.htapbench.util.FileUtil;
  */
 public class Clock {
 
+    // The target number of timestamps/second in the population phase. This particular
+    // value of 25 reduces the rounding error when converting to a long.
+    static int targetPopulateTsPerSec = 25;
+
     private final long tpch_start_date = Timestamp.valueOf("1992-01-01 00:00:00").getTime();
     private final long tpch_end_date = Timestamp.valueOf("1998-12-31 23:59:59").getTime();
-    private AtomicLong clock;
-    private int warehouses;
-    private long deltaTs;
+    private DensityConsultant density;
+    private AtomicLong newOrderClock;
+    private AtomicLong deliveryClock;
+    private int intervalSizeSeconds;
     private long startTime;
     private long populateStartTs;
-    private boolean populate;
     private boolean hybrid;
 
     /**
      * Clock constructor for the population phase.
      */
-    public Clock(long deltaTS, int warehouses, boolean populate, String filePath) {
-        this.deltaTs = deltaTS;
-        this.populate = populate;
-        this.warehouses = warehouses;
+    public Clock(int warehouses, String filePath) {
+        int timestamps = warehouses * HTAPBConstants.configDistPerWhse * HTAPBConstants.configCustPerDist;
+        this.intervalSizeSeconds = timestamps / targetPopulateTsPerSec;
 
         FileUtil.makeDirIfNotExists(filePath);
 
-        if (populate) {
-            this.startTime = System.currentTimeMillis();
-            this.populateStartTs = startTime;
-        } else {
-            this.startTime = AuxiliarFileHandler.importLastTs(filePath);
-            this.populateStartTs = AuxiliarFileHandler.importFirstTs(filePath);
-        }
-
-        this.clock = new AtomicLong(startTime);
+        this.startTime = System.currentTimeMillis();
+        this.populateStartTs = startTime;
     }
 
     /**
      * Clock constructor for the execution phase.
      */
-    public Clock(long deltaTS, int warehouses, boolean populate, boolean hybrid, String filePath) {
-        this(deltaTS, warehouses, populate, filePath);
+    public Clock(boolean hybrid, String filePath) {
+        this.startTime = AuxiliarFileHandler.importLastTs(filePath);
+        this.populateStartTs = AuxiliarFileHandler.importFirstTs(filePath);
 
         this.hybrid = hybrid;
+
+        // Set the start-time for both clocks
+        this.newOrderClock = new AtomicLong(startTime);
+        this.deliveryClock = new AtomicLong(startTime);
+
+        this.density = new DensityConsultant();
     }
 
     /**
-     * Increments the global clock and returns the new timestamp.
+     * Increments the newOrder clock and returns the new timestamp.
      */
-    public long tick() {
-        return clock.addAndGet(deltaTs);
+    public long newOrdertick() {
+        return newOrderClock.addAndGet(density.getNewOrderDeltaTs());
+    }
+
+    /**
+     * Increments the delivery clock and returns the new timestamp.
+     */
+    public long deliveryTick() {
+        return deliveryClock.addAndGet(density.getDeliveryDeltaTs());
     }
 
     /**
@@ -88,41 +99,37 @@ public class Clock {
      * @return a random long between the start and finish timestamp of the population phase.
      */
     public long populateTick() {
-        return ThreadLocalRandom.current().nextLong(getStartTimestamp(), getFinalPopulatedTs());
-    }
-
-    /**
-     * Returns the current value of the global clock.
-     */
-    public long getCurrentTs() {
-        return clock.get();
+        return ThreadLocalRandom.current().nextLong(startTime, getFinalPopulatedTs());
     }
 
     /**
      * Returns the first generated Timestamp.
      */
     public long getStartTimestamp() {
-        return this.startTime;
+        return startTime;
     }
 
     /**
      * Computes and returns the last populated TS.
      */
     public long getFinalPopulatedTs() {
-        long TSnumber = warehouses * HTAPBConstants.configDistPerWhse * HTAPBConstants.configCustPerDist * 2;
-        return startTime + deltaTs * TSnumber;
+        return startTime + intervalSizeSeconds * 1000;
+    }
+
+    public long getCurrentTs() {
+        return Math.max(newOrderClock.get(), deliveryClock.get());
     }
 
     /**
-     * Computes and returns the offset of the sliding window
-     * to be used in case of a hybrid workload.
+     * Computes and returns the offset of the sliding window to be used
+     * in case of a hybrid workload.
      */
-    private long getSlidingWindowOffset() {
+    private long getSlidingWindowOffset(AtomicLong clock) {
         // Check if we are in the population phase and if a sliding window is necessary
-        if (populate || !hybrid)
+        if (!hybrid)
             return 0;
         else
-            return getCurrentTs() - getStartTimestamp();
+            return clock.get() - getStartTimestamp();
     }
 
 
@@ -144,7 +151,7 @@ public class Clock {
      * @return A new timestamp consistent with the timestamps in the population phase
      *         to be used as date parameters in TPC-H queries.
      */
-    public long transformTsFromSpecToLong(long ts) {
+    private long transformTsFromSpecToLong(AtomicLong clock, long ts) {
         // Determine the size of the interval in the population phase
         long tss = this.startTime - this.populateStartTs;
 
@@ -152,10 +159,18 @@ public class Clock {
         double pct = (double) (ts - tpch_start_date)/(tpch_end_date - tpch_start_date);
 
         // Determine the offset, possibly including a sliding window
-        long offset = (long) (getSlidingWindowOffset() + pct * tss);
+        long offset = (long) (getSlidingWindowOffset(clock) + pct * tss);
 
         // Return the offset with populateStartTs as the reference
         return offset + this.populateStartTs;
+    }
+
+    public long transformOrderTsToLong(long ts) {
+        return transformTsFromSpecToLong(newOrderClock, ts);
+    }
+
+    public long transformDeliveryTsToLong(long ts) {
+        return transformTsFromSpecToLong(deliveryClock, ts);
     }
 
     /**

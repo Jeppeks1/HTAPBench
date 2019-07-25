@@ -71,8 +71,8 @@ public class Q6 extends GenericQuery {
         long date1 = RandomParameters.convertDateToLong(year, 1, 1);
         long date2 = RandomParameters.convertDateToLong(year + 1, 1, 1);
 
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+        Timestamp ts1 = new Timestamp(clock.transformDeliveryTsToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformDeliveryTsToLong(date2));
 
         String query = "SELECT sum(ol_amount * c_discount) AS revenue "
                 +      "FROM "

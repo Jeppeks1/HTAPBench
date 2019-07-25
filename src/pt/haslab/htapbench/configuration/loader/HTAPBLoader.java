@@ -630,7 +630,7 @@ public class HTAPBLoader extends Loader {
 
                         //**************************************************
                         //TIMESTAMP DENSITY
-                        Timestamp sysdate = new java.sql.Timestamp(clock.tick());
+                        Timestamp sysdate = new java.sql.Timestamp(clock.populateTick());
                         //**************************************************
 
                         if (calibrate) {
@@ -894,7 +894,7 @@ public class HTAPBLoader extends Loader {
 
                         //**************************************************
                         //TIMESTAMP DENSITY
-                        oorder.o_entry_d = clock.tick();
+                        oorder.o_entry_d = clock.populateTick();
                         //**************************************************
 
                         if (calibrate) {

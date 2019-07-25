@@ -427,10 +427,6 @@ public class HTAPBCSVLoader extends Loader {
                         // deemed unnecessary at this point.
                         Timestamp sysdate = new Timestamp(clock.populateTick());
 
-                        if (calibrate) {
-                            counter.incrementAndGet();
-                        }
-
                         customer.c_id = c;
                         customer.c_d_id = d;
                         customer.c_w_id = w;
@@ -519,9 +515,8 @@ public class HTAPBCSVLoader extends Loader {
                         oorder.o_entry_d = clock.populateTick();
                         Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
 
-                        if (calibrate) {
-                            counter.incrementAndGet();
-                        }
+                        // Count the number of new timestamps (that are relevant for TPCH queries)
+                        counter.incrementAndGet();
 
                         oorder.o_id = c;
                         oorder.o_w_id = w;

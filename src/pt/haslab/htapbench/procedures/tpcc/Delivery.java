@@ -44,7 +44,6 @@ import pt.haslab.htapbench.benchmark.HTAPBConstants;
 import pt.haslab.htapbench.util.TPCCUtil;
 import pt.haslab.htapbench.core.TPCCWorker;
 
-
 public class Delivery extends TPCCProcedure {
 
 	private SQLStmt delivGetOrderIdSQL = new SQLStmt("SELECT NO_O_ID "
@@ -186,7 +185,7 @@ public class Delivery extends TPCCProcedure {
 					w.getTsCounter().incrementAndGet();
 					delivUpdateDeliveryDate.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
 				} else {
-					delivUpdateDeliveryDate.setTimestamp(1, new Timestamp(w.getClock().tick()));
+					delivUpdateDeliveryDate.setTimestamp(1, new Timestamp(w.getClock().deliveryTick()));
 				}
 
 				delivUpdateDeliveryDate.setInt(2, no_o_id);

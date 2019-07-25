@@ -108,9 +108,8 @@ public abstract class Loader {
         this.itemPath = csvFilePath + "/" + CSVNAME_ITEM;
 
         // Set the clock
-        long deltaTS = benchmark.getDensityConsultant().getDeltaTs();
         String csvFilePath = workConf.getFilePathCSV();
-        clock = new Clock(deltaTS, (int) scaleFactor, true, csvFilePath);
+        this.clock = new Clock((int) scaleFactor, csvFilePath);
 
         // Initialize the RandomParameter
         this.randomParam = new RandomParameters("uniform", (int) scaleFactor);

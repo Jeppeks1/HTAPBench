@@ -61,8 +61,8 @@ public class Q7 extends GenericQuery {
         long date1 = RandomParameters.convertDateToLong(1995, 1, 1);
         long date2 = RandomParameters.convertDateToLong(1996, 12, 31);
 
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+        Timestamp ts1 = new Timestamp(clock.transformDeliveryTsToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformDeliveryTsToLong(date2));
 
         String query = "SELECT n1.n_name as su_nation, "
                 +             "n2.n_name as c_nation, "

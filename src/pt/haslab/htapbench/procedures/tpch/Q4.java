@@ -60,8 +60,8 @@ public class Q4 extends GenericQuery {
         long date1 = RandomParameters.convertDateToLong(year, month, 1);
         long date2 = RandomParameters.addMonthsToDate(date1, 3);
 
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+        Timestamp ts1 = new Timestamp(clock.transformOrderTsToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformOrderTsToLong(date2));
 
         String query = "SELECT o_ol_cnt, "
                 +             "count(*) AS order_count "

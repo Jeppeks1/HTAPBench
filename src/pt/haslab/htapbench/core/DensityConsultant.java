@@ -22,37 +22,39 @@ package pt.haslab.htapbench.core;
  */
 public class DensityConsultant {
 
-    private final double m = 1.26956;
-    private final double b = 0.0103497;
-    private double density;
-    private long deltaTS; //deltaTs in ms.
-    private final int targetTPS;
+    // The timestamps/second found in the population phase.
+    private double populateOrderTPS = Clock.targetPopulateTsPerSec;
+    private double populateDeliveryTPS = populateOrderTPS * 0.7; // 70 % of all o_entry_d are re-used as ol_delivery_d
 
+    // The amount the Clock should be incremented, to match the timestamps/second found in the population phase.
+    private long newOrderDeltaTs;
+    private long deliveryDeltaTs;
 
-    DensityConsultant(int targetTPS) {
-        this.targetTPS = targetTPS;
-        this.computeDensity();
-        this.computeDeltaTS();
+    DensityConsultant() {
+        computeDeltaTS();
     }
 
     /**
-     * Computes the density found during the TPC-C execute stage. This value is pre-defines for the standard TPC-X Txn mix.
-     */
-    private void computeDensity() {
-        this.density = m * targetTPS + b;
-    }
-
-    /**
-     * Return how many seconds should the clock move forward at each new TS issue process.
+     * Return how many milliseconds the clock should move forward at each new TS issue process.
      */
     private void computeDeltaTS() {
-        this.deltaTS = (long) (1000 / density);
+        // Compute the deltaTS for the execution phase based on the number of timestamps
+        // per second in the population phase.
+        this.newOrderDeltaTs = (long) Math.floor(1000 / populateOrderTPS);
+        this.deliveryDeltaTs = (long) Math.floor(1000 / populateDeliveryTPS);
     }
 
     /**
-     * Computes the Timestamp Delta used at each clock tick.
+     * Computes the Timestamp delta used at each clock tick for the newOrder transaction.
      */
-    public long getDeltaTs() {
-        return this.deltaTS;
+    long getNewOrderDeltaTs() {
+        return newOrderDeltaTs;
+    }
+
+    /**
+     * Computes the Timestamp delta used at each clock tick for the delivery transaction.
+     */
+    long getDeliveryDeltaTs() {
+        return deliveryDeltaTs;
     }
 }

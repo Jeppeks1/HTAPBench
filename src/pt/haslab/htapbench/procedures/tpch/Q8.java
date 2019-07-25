@@ -55,8 +55,8 @@ public class Q8 extends GenericQuery {
         long date1 = RandomParameters.convertDateToLong(1995, 1, 1);
         long date2 = RandomParameters.convertDateToLong(1996, 12, 31);
 
-        Timestamp ts1 = new Timestamp(clock.transformTsFromSpecToLong(date1));
-        Timestamp ts2 = new Timestamp(clock.transformTsFromSpecToLong(date2));
+        Timestamp ts1 = new Timestamp(clock.transformOrderTsToLong(date1));
+        Timestamp ts2 = new Timestamp(clock.transformOrderTsToLong(date2));
 
         String query = "SELECT sum(CASE WHEN n2.n_name = '" + nation + "' "
                 +                 "THEN ol_amount ELSE 0 END) / sum(ol_amount) AS mkt_share "

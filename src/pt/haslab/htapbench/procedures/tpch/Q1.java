@@ -47,7 +47,7 @@ public class Q1 extends GenericQuery {
 
         // Calculate the correct offset and then convert to the correct timestamp
         long ts_minusXdays = clock.computeEndMinusXDays(days);
-        Timestamp ts = new Timestamp(clock.transformTsFromSpecToLong(ts_minusXdays));
+        Timestamp ts = new Timestamp(clock.transformDeliveryTsToLong(ts_minusXdays));
 
         String query = "SELECT ol_number, "
                 + "sum(ol_quantity) AS sum_qty, "

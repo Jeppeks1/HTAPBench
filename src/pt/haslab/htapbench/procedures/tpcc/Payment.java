@@ -306,7 +306,7 @@ public class Payment extends TPCCProcedure {
 			w.getTsCounter().incrementAndGet();
 			payInsertHist.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
 		} else {
-			payInsertHist.setTimestamp(6, new Timestamp(w.getClock().tick()));
+			payInsertHist.setTimestamp(6, new Timestamp(w.getClock().getCurrentTs()));
 		}
 		payInsertHist.executeUpdate();
 

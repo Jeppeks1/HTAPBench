@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class HTAPBenchmark extends BenchmarkModule {
 
     private static final Logger LOG = Logger.getLogger(HTAPBenchmark.class);
-    private DensityConsultant density;
     private AtomicInteger ts_counter;
     private Clock clock;
 
@@ -42,16 +41,13 @@ public class HTAPBenchmark extends BenchmarkModule {
         super(workConf.getBenchmarkName(), workConf, true);
 
         this.ts_counter = new AtomicInteger();
-        this.density = new DensityConsultant(workConf.getTargetTPS());
     }
 
     /**
      * Initialize the clock for the execution phase
      */
     void initClock() {
-        int warehouses = (int) workConf.getScaleFactor();
-        boolean hybrid = workConf.getHybridWorkload();
-        this.clock = new Clock(density.getDeltaTs(), warehouses, false, hybrid, workConf.getFilePathCSV());
+        this.clock = new Clock(workConf.getHybridWorkload(), workConf.getFilePathCSV());
     }
 
     @Override
@@ -185,10 +181,6 @@ public class HTAPBenchmark extends BenchmarkModule {
             ret.add(new TPCHWorker(this, clock));
 
         return ret;
-    }
-
-    public DensityConsultant getDensityConsultant(){
-        return density;
     }
 
     public Clock getClock(){
