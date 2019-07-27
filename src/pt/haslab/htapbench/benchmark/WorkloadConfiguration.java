@@ -63,6 +63,7 @@ public class WorkloadConfiguration {
 
     private String benchmarkName;
     private String db_connection;
+    private String hybridStategy;
     private String filePathCSV;
     private String db_username;
     private String db_password;
@@ -106,7 +107,7 @@ public class WorkloadConfiguration {
      * it for execution by adding it to the list of Phases to be executed.
      */
     public void addWork(int time, int rate, List<String> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
-        phases.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
+        phases.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, hybridStategy, rateLimited, disabled, serial, timed, active_terminals, arrival));
         numberOfPhases++;
 
         setBenchmarkDuration(time);
@@ -230,6 +231,11 @@ public class WorkloadConfiguration {
     public boolean getHybridWorkload() { return this.hybridWorkload; }
 
     public void setHybridWorkload(boolean flag) { this.hybridWorkload = flag; }
+
+    // Hybrid strategy
+    public String getHybridStrategy() { return this.hybridStategy; }
+
+    public void setHybridStrategy(String strategy) { this.hybridStategy = strategy; }
 
     // Error margin
     public double getErrorMargin() {

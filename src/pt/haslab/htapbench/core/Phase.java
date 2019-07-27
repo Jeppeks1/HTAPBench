@@ -54,6 +54,7 @@ public class Phase {
     final int rate;
     final Arrival arrival;
 
+    private final String strategy;
     private final boolean rateLimited;
     private final boolean disabled;
     private final boolean serial;
@@ -63,7 +64,8 @@ public class Phase {
     private int activeTerminals;
     private int nextSerial;
 
-    public Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
+    public Phase(String benchmarkName, int id, int t, int r, List<String> o, String strategy, boolean rateLimited,
+                 boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
         ArrayList<Double> w = new ArrayList<Double>();
         for (String s : o)
             w.add(Double.parseDouble(s));
@@ -74,6 +76,7 @@ public class Phase {
         this.rate = r;
         this.weights = Collections.unmodifiableList(w);
         this.num_weights = this.weights.size();
+        this.strategy = strategy;
         this.rateLimited = rateLimited;
         this.disabled = disabled;
         this.serial = serial;
@@ -157,29 +160,48 @@ public class Phase {
             }
             return ret;
         } else {
-            // HTAPB:
+            // Hybrid workload:
             if (worker instanceof TPCCWorker) {
-                int randomPercentage = gen.nextInt(100) + 1;
-                double weight = 0.0;
-                for (int i = 0; i < this.num_weights; i++) {
-                    weight += weights.get(i);
-                    if (randomPercentage <= weight) {
-                        return i + 1;
-                    }
-                } // FOR
+                return getTxnByWeight(worker);
             } else if (worker instanceof TPCHWorker) {
-                int randomPercentage = gen.nextInt(100) + 101;
-                //int randomPercentage = RandomParameters.randBetween(101, 200)+1;
-                double weight = 0.0;
-                for (int i = 0; i < this.num_weights; i++) {
-                    weight += weights.get(i);
-                    if (randomPercentage <= weight) {
-                        return i + 1;
-                    }
-                } // FOR
-
+                // Determine the selection strategy based on the input parameter
+                if (strategy.equalsIgnoreCase("weights")) {
+                    return getTxnByWeight(worker);
+                } else if (strategy.equalsIgnoreCase("fixed")) {
+                    return getTxnByFixed(worker);
+                } else if (strategy.equalsIgnoreCase("round-robin")) {
+                    return getTxnByRoundRobin(worker);
+                }
             }
         }
+
+        return -1;
+    }
+
+    private int getTxnByFixed(Worker worker) {
+        // This case is a special instance of the round-robin method
+        return getTxnByRoundRobin(worker);
+    }
+
+    private int getTxnByRoundRobin(Worker worker) {
+        int offset = 6; // There are five TPCC transactions and one invalid id before valid OLAP transaction ids
+
+        // The transaction can be chosen based on the workerID of the worker to simulate a round-robin selection
+        return offset + worker.getId() % 22;
+    }
+
+    private int getTxnByWeight(Worker worker) {
+        // Offset the weights according to the type of the Worker
+        int offset = worker instanceof TPCCWorker ? 1 : 101;
+
+        int randomPercentage = gen.nextInt(100) + offset;
+        double weight = 0.0;
+        for (int i = 0; i < this.num_weights; i++) {
+            weight += weights.get(i);
+            if (randomPercentage <= weight) {
+                return i + 1;
+            }
+        } // FOR
 
         return -1;
     }

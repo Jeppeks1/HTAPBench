@@ -88,6 +88,7 @@ public class HTAPBench {
     private static double error_margin;
     private static boolean calibrate;
     private static boolean idealClient;
+    private static String strategy;
 
     public static void main(String[] args) throws Exception {
         // Initialize log4j
@@ -121,6 +122,7 @@ public class HTAPBench {
         options.addOption("m", "mode", true, "[required] Mode indicating the benchmark configuration strategy." +
                 " Supported options: " + Arrays.toString(Mode.values()));
         options.addOption(null, "workload", true, "Which workload to run, default hybrid.");
+        options.addOption(null, "strategy", true, "Which workload to run, default hybrid.");
         options.addOption(null, "sequence", true, "Performs every mode in sequence before the current mode, default true.");
         options.addOption(null, "overwrite", false, "Resets the database or CSV files in either the configure or generate mode.");
         options.addOption(null, "useCSV", true, "Use CSV files in the generate or populate phase, default true.");
@@ -179,6 +181,9 @@ public class HTAPBench {
         if (argsLine.hasOption("t")) {
             timestampValue = dateFormat.format(new Timestamp(System.currentTimeMillis())) + "_";
         }
+
+        // Get hybrid execution strategy
+        strategy = argsLine.getOptionValue("strategy", "weights");
 
         // Check if the idealClient flag has been set, indicating how the workload setup should proceed
         idealClient = argsLine.hasOption("ic");
@@ -476,6 +481,7 @@ public class HTAPBench {
             wrkld.setTargetTPS(setup.getTargetTPS());
             wrkld.setFilePathCSV(filePathCSV);
             wrkld.setCalibrate(mode);
+            wrkld.setHybridStrategy(strategy);
 
             // Set the useCSV value according to the input
             if (argsLine.hasOption("useCSV")) {

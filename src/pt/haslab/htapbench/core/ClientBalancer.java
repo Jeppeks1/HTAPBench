@@ -47,6 +47,7 @@ public class ClientBalancer implements Runnable {
     private volatile boolean processedResults = false;
     private volatile boolean terminate = false;
     private boolean saturated = false;
+    private boolean fixedStrategy;
     private double integral = 0;
     private int olapStreams = 0;
     private int projectedThroughput;
@@ -58,6 +59,7 @@ public class ClientBalancer implements Runnable {
 
         this.latencies = new LatencyRecord(0);
         this.projectedThroughput = wrkld.getTargetTPS() * deltaT;
+        this.fixedStrategy = wrkld.getHybridStrategy().equalsIgnoreCase("fixed");
         this.error_margin = wrkld.getErrorMargin();
 
         this.workload = workload;
@@ -112,6 +114,10 @@ public class ClientBalancer implements Runnable {
                 LOG.info("TPS: " + throughput / deltaT);
                 LOG.info("output: " + output);
                 LOG.info("error: " + error);
+
+                // New workers should not be spawned when using a fixed set of OLAP workers
+                if (fixedStrategy)
+                    continue;
 
                 if (olapStreams == 0 || (!saturated && output < error_margin * projectedThroughput)) {
                     workload.addTPCHWorker();
