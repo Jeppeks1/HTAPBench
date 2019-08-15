@@ -36,6 +36,8 @@ public class Item {
 
 	public int i_id; // PRIMARY KEY
 	public int i_im_id;
+	public int i_warranty_guarantee;
+	public int i_delivery_guarantee;
     public double i_price;
 	public String i_name;
 	public String i_data;

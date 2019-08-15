@@ -42,6 +42,8 @@ public class OrderLine {
 	public int ol_supply_w_id;
 	public int ol_quantity;
 	public Long ol_delivery_d;
+	public Long ol_return_date;
+	public String ol_return_reason;
 	public float ol_amount;
 	public String ol_dist_info;
 

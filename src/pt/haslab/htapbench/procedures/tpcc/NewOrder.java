@@ -72,6 +72,21 @@ public class NewOrder extends TPCCProcedure {
 	private final SQLStmt stmtGetItemSQL = new SQLStmt("SELECT I_PRICE, I_NAME , I_DATA FROM "
 			+ HTAPBConstants.TABLENAME_ITEM + " WHERE I_ID = ?");
 
+	private final SQLStmt stmtGetSupplyWarehouseSQL = new SQLStmt(
+	        "SELECT ol_w_id as ol_supply_w_id, " +
+            "       SUM(case when ol_return_reason = 'defect' THEN 1 ELSE 0 END) " +
+            "       / COUNT(ol_delivery_d) * 100 as warrantySatisfied " +
+            "FROM ORDER_LINE, ITEM " +
+            "WHERE ol_i_id = i_id " +
+            "  AND ol_i_id = ? " +
+            "  AND ol_w_id = ? " +
+            "  AND ol_delivery_d  >= DATE_ADD(?, INTERVAL -30 * ? MICROSECOND) " + // Only count somewhat recent deliveries
+            "  AND ol_return_date <= DATE_ADD(ol_delivery_d, " +
+                    "INTERVAL i_warranty_guarantee * ? MICROSECOND) " + // ol_return_date <= ol_delivery_d + i_warranty_guarantee
+            "GROUP BY ol_w_id " +
+            "ORDER BY warrantySatisfied DESC " +
+            "LIMIT 1");
+
 	private final SQLStmt stmtGetStockSQL = new SQLStmt("SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, "
 			+ "S_DIST_03, S_DIST_04, S_DIST_05, "
 			+ "S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10"
@@ -92,6 +107,7 @@ public class NewOrder extends TPCCProcedure {
 	private PreparedStatement stmtUpdateDist = null;
 	private PreparedStatement stmtInsertOOrder = null;
 	private PreparedStatement stmtGetItem = null;
+	private PreparedStatement stmtGetSupplyWarehouse = null;
 	private PreparedStatement stmtGetStock = null;
 	private PreparedStatement stmtUpdateStock = null;
 	private PreparedStatement stmtInsertOrderLine = null;
@@ -108,6 +124,7 @@ public class NewOrder extends TPCCProcedure {
 		stmtUpdateDist = this.getPreparedStatement(conn, stmtUpdateDistSQL);
 		stmtInsertOOrder = this.getPreparedStatement(conn, stmtInsertOOrderSQL);
 		stmtGetItem = this.getPreparedStatement(conn, stmtGetItemSQL);
+        stmtGetSupplyWarehouse = this.getPreparedStatement(conn, stmtGetSupplyWarehouseSQL);
 		stmtGetStock = this.getPreparedStatement(conn, stmtGetStockSQL);
 		stmtUpdateStock = this.getPreparedStatement(conn, stmtUpdateStockSQL);
 		stmtInsertOrderLine = this.getPreparedStatement(conn, stmtInsertOrderLineSQL);
@@ -117,19 +134,11 @@ public class NewOrder extends TPCCProcedure {
 
 		int numItems = TPCCUtil.randomNumber(5, 15, gen);
 		int[] itemIDs = new int[numItems];
-		int[] supplierWarehouseIDs = new int[numItems];
 		int[] orderQuantities = new int[numItems];
 		int allLocal = 1;
 		for (int i = 0; i < numItems; i++) {
 			itemIDs[i] = TPCCUtil.getItemID(gen);
-			if (TPCCUtil.randomNumber(1, 100, gen) > 1) {
-				supplierWarehouseIDs[i] = terminalWarehouseID;
-			} else {
-				do {
-					supplierWarehouseIDs[i] = TPCCUtil.randomNumber(1,
-							numWarehouses, gen);
-				} while (supplierWarehouseIDs[i] == terminalWarehouseID
-						&& numWarehouses > 1);
+			if (TPCCUtil.randomNumber(1, 100, gen) <= 1) {
 				allLocal = 0;
 			}
 			orderQuantities[i] = TPCCUtil.randomNumber(1, 10, gen);
@@ -141,7 +150,7 @@ public class NewOrder extends TPCCProcedure {
 
 		newOrderTransaction(terminalWarehouseID, districtID,
 				customerID, numItems, allLocal, itemIDs,
-				supplierWarehouseIDs, orderQuantities, w);
+				orderQuantities, w);
 
 		return null;
 
@@ -150,7 +159,7 @@ public class NewOrder extends TPCCProcedure {
 
 	private void newOrderTransaction(int w_id, int d_id, int c_id,
 									 int o_ol_cnt, int o_all_local, int[] itemIDs,
-									 int[] supplierWarehouseIDs, int[] orderQuantities, TPCCWorker w)
+									 int[] orderQuantities, TPCCWorker w)
 			throws SQLException {
 		ResultSet rs = null;
 
@@ -222,10 +231,30 @@ public class NewOrder extends TPCCProcedure {
 
 			String ol_dist_info = null;
 			for (int ol_number = 1; ol_number <= o_ol_cnt; ol_number++) {
-				int ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
 				int ol_i_id = itemIDs[ol_number - 1];
 				int ol_quantity = orderQuantities[ol_number - 1];
 
+				// Determine the supplier warehouse based on some analytical criteria
+                double scaleFactor = w.getClock().computeTransformScaleFactor() * 1000; // MySQL expects microseconds, not milliseconds
+                long currentTS = w.getClock().getCurrentTs();
+                Timestamp transformedTS = new Timestamp(w.getClock().transformDeliveryTsToLong(currentTS));
+                stmtGetSupplyWarehouse.setInt(1, ol_i_id);
+                stmtGetSupplyWarehouse.setInt(2, w_id);
+                stmtGetSupplyWarehouse.setTimestamp(3, transformedTS);
+                stmtGetSupplyWarehouse.setDouble(4, scaleFactor);
+                stmtGetSupplyWarehouse.setDouble(5, scaleFactor);
+
+                rs = stmtGetSupplyWarehouse.executeQuery();
+
+                Integer ol_supply_w_id;
+                if (!rs.next()) {
+                    // If no alternative warehouse was found, the home warehouse is used.
+                    ol_supply_w_id = w_id;
+                } else {
+                    ol_supply_w_id = rs.getInt("ol_supply_w_id");
+                }
+
+                // Begin the next statements
 				stmtGetItem.setInt(1, ol_i_id);
 
 				rs = stmtGetItem.executeQuery();

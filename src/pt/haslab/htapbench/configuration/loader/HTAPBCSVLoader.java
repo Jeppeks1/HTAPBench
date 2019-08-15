@@ -121,6 +121,8 @@ public class HTAPBCSVLoader extends Loader {
                 }
 
                 item.i_im_id = TPCCUtil.randomNumber(1, 10000, gen);
+                item.i_warranty_guarantee = TPCCUtil.randomNumber(182, 365, gen); // Warranty between 6 and 12 months
+                item.i_delivery_guarantee = TPCCUtil.randomNumber(2, 10, gen); // Guarantee between 2 and 10 days
 
                 k++;
                 String str = "";
@@ -128,7 +130,9 @@ public class HTAPBCSVLoader extends Loader {
                 str = str + item.i_name + ",";
                 str = str + item.i_price + ",";
                 str = str + item.i_data + ",";
-                str = str + item.i_im_id;
+                str = str + item.i_im_id + ",";
+                str = str + item.i_warranty_guarantee + ",";
+                str = str + item.i_delivery_guarantee + ",";
                 out.println(str);
 
                 if ((k % configCommitCount) == 0) {
@@ -596,11 +600,31 @@ public class HTAPBCSVLoader extends Loader {
                             }
 
                             String delivery_d;
+                            String ol_return_reason = nullConstant;
+                            Timestamp ol_return_date_ts = null;
                             if (order_line.ol_delivery_d == null) {
                                 delivery_d = nullConstant;
                             } else {
                                 delivery_d = new Timestamp(order_line.ol_delivery_d).toString();
+
+                                // 5 % of delivered items returned due to shipping damage
+                                double shipping_pct = RandomParameters.randDoubleBetween(0, 100);
+                                if (shipping_pct < 5){
+                                    int maxWarrantyPlusDays = TPCCUtil.randomNumber(0, 12, gen);
+                                    ol_return_reason = "damage"; // Blame the carrier
+                                    ol_return_date_ts = new Timestamp(clock.computeTsPlusXTransformedDays(order_line.ol_delivery_d, maxWarrantyPlusDays));
+                                }
+
+                                // Roughly 10 % of delivered items returned due to manufacturing defect
+                                double defect_pct = RandomParameters.randDoubleBetween(0, 100);
+                                if (defect_pct < 10 && shipping_pct >= 5){
+                                    int maxWarrantyPlusDays = TPCCUtil.randomNumber(0, 365, gen);
+                                    ol_return_reason = "defect"; // Blame the supplier
+                                    ol_return_date_ts = new Timestamp(clock.computeTsPlusXTransformedDays(order_line.ol_delivery_d, maxWarrantyPlusDays));
+                                }
                             }
+
+                            String ol_return_date = ol_return_date_ts == null ? nullConstant : ol_return_date_ts.toString();
 
                             str = "";
                             str = str + order_line.ol_w_id + ",";
@@ -612,6 +636,8 @@ public class HTAPBCSVLoader extends Loader {
                             str = str + order_line.ol_amount + ",";
                             str = str + order_line.ol_supply_w_id + ",";
                             str = str + order_line.ol_quantity + ",";
+                            str = str + ol_return_date + ",";
+                            str = str + ol_return_reason + ",";
                             str = str + order_line.ol_dist_info;
                             outOrderLine.println(str);
                             k++;

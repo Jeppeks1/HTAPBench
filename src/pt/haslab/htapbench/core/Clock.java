@@ -189,4 +189,27 @@ public class Clock {
         long daysInLong = days * 24 * 60 * 60 * 1000L;
         return tpch_end_date - daysInLong;
     }
+
+    public long computeTsPlusXTransformedDays(long ts, int days) {
+        // Determine the size of the interval in the population phase
+        long tss = getFinalPopulatedTs() - getStartTimestamp();
+
+        // Transform the number of days into the 7-year interval used in TPCH
+        double pct = (double) days / (365 * 7);
+
+        // Determine the offset
+        long offset = (long) (pct * tss);
+
+        // Return the new timestamp
+        return ts + offset;
+    }
+
+    public double computeTransformScaleFactor() {
+        // Determine the size of the interval in the population phase
+        long tss = getFinalPopulatedTs() - getStartTimestamp();
+
+        // Multiplying this value with the number of days returns the size of the offset
+        // See computeTsPlusXTransformedDays for a clearer interpretation of why this works.
+        return (double) tss / (365 * 7);
+    }
 }
