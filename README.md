@@ -9,6 +9,9 @@ There are a few requirements to run HTAPBench:
 2. You need to have installed the JDBC driver for the database you want to test.
 
 # A. Build HTAPBench:
+
+If the complex HTAP workload is desired, clone the GitHub repository called "ComplexHTAP". Otherwise, use the master branch for a normal HTAP workload. Then run:
+
 ```bash
 	mvn clean compile package
 ```
@@ -21,40 +24,24 @@ Before you continue ensure that:
 - That the database engine to be tested is configured with the required memory and that the max_clients allowance is enough for you setup.
 - In the database engine to be tested, create a test database e.g., htapb.
 - In the database engine to be tested, create a user/password and grant all privileges to your test database.
-- In the database engine to be tested, install the database schema.
-```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --create true --load false --generateFiles false --filePath yourdir/ --execute false --calibrate false
-```
-# C. Populate
-Before running HTAPBench, you will need to load data into the database. The generated workload is computed according to the configured TPS. If you change this parameter, you need to generate the database files again. 
-
-You have 2 choices
-
-1. Generate the CSV files to populate the database. (We recommend this method as it usually loads data faster.)
-```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --generateFiles true --filePath dir --execute false --calibrate true
-```
-Afterwards you need to connect to the database engine console and use a Bulk Load command.
-e.g., in Postgresql use the psql command to establish a connection and load each (e.g., WAREHOUSE and OORDER) table in the schema. 
-```bash
-> psql -h Postgres_host_IP -p Postgres_host_port -U postgres_user -d database_name
-> COPY WAREHOUSE FROM '/dirwarehouse.csv' USING DELIMITERS ',';
-> COPY OORDER FROM '/dirorder.csv' USING DELIMITERS ',' WITH NULL as 'null';
-```
-(different database engines will have different commands. Check the respective documentation)
-
-2. Populate the database directly from HTAPBench. This internally establishes a connection and performs insert statements.
-```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c your_config_file.xml --load true --execute false --calibrate true
-```
 
 # C. Run Tests
-Before running any tests ensure that the previous stage was successfully completed. 
+Before running any tests ensure that the configuration stage was successfully completed. 
 
 Then run:
 ```bash
-java -cp .:target/htapbench-0.95-jar-with-dependencies.jar pt.haslab.htapbench.core.HTAPBench -b database_name -c config/htapb_config_postgres.xml --create false --load false --execute true --s 120 --calibrate false
+java -cp .:target/htapbench-0.95-jar-with-dependencies.jar:/usr/share/java/mysql-connector-java-8.0.15.jar pt.haslab.htapbench.core.HTAPBench -b htapb -c config/htapb_config_mysql.xml --mode execute --workload htap --sequence true --strategy fixed
 ```
+
+The `--mode` option allows the user to control which stages of the benchmark phase are run. The options are:
+* Configure: Installs the relevant schema in the database
+* Generate: Generates the csv files for the given target TPS specified in the configuration file
+* Populate: Attempts to fill the database with the data from the csv files
+* Execute: Executes the actual workload against the database
+
+The `--sequence` option gives the user control over which of the above stages are execute. If `--sequence true`, all the previous modes are performed in sequence. For example, the user can specify `--mode populate` and `--sequence true`, in order to install the schema in the database, generate the required csv files and populate the database with the data, but the actual execution is skipped. 
+
+This is very useful when performing multiple tests in a row. The `--overwrite true` option can be set to forcefully drop an existing database, allowing the user to run the next experiment with just a single command. If the `--overwrite false` option is used, but an existing database contains data, the benchmark will ignore the option and continue as normal.
 
 # Publications
 If you are using this benchmark for your papers or for your work, please cite the paper:
